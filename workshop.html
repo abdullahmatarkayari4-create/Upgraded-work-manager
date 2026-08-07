@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نُظُم | نظام إدارة ورشة الأثاث</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{
+  --walnut:#2b211b;
+  --walnut-2:#3d2f26;
+  --amber:#c17a3f;
+  --amber-light:#e0a568;
+  --cream:#f7f2ea;
+  --paper:#fffdfa;
+  --ink:#241c17;
+  --ink-soft:#6b5d51;
+  --line:#e6dcce;
+  --ok:#3f6b4f;
+  --ok-bg:#e7f0ea;
+  --bad:#a13d3d;
+  --bad-bg:#f7e8e6;
+  --warn:#b3701f;
+  --warn-bg:#f6ead6;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Tajawal',sans-serif;background:var(--cream);color:var(--ink);font-size:14px;line-height:1.6;}
+.num{font-family:'JetBrains Mono',monospace;font-feature-settings:"tnum";}
+::selection{background:var(--amber-light);color:var(--walnut);}
+
+/* ---------- login ---------- */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:
+  radial-gradient(circle at 15% 20%, rgba(193,122,63,.18), transparent 45%),
+  radial-gradient(circle at 85% 80%, rgba(193,122,63,.12), transparent 45%),
+  var(--walnut);padding:20px;}
+.login-card{background:var(--paper);width:100%;max-width:420px;border-radius:16px;padding:38px 32px;box-shadow:0 30px 60px rgba(0,0,0,.35);text-align:center;position:relative;overflow:hidden;}
+.login-card::before{content:"";position:absolute;top:0;right:0;left:0;height:5px;background:linear-gradient(90deg,var(--amber),var(--amber-light));}
+.brand-mark{width:56px;height:56px;border-radius:12px;background:var(--walnut);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:var(--amber-light);font-size:26px;font-weight:900;}
+.login-card h1{font-size:20px;font-weight:900;color:var(--walnut);margin-bottom:6px;}
+.login-card p{color:var(--ink-soft);font-size:13px;margin-bottom:26px;}
+.google-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;border:1.5px solid var(--line);padding:13px;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;color:var(--ink);transition:.15s;}
+.google-btn:hover{border-color:var(--amber);background:#fffaf3;}
+
+/* ---------- app shell ---------- */
+.hidden{display:none!important;}
+#app{min-height:100vh;display:flex;}
+.sidebar{width:230px;flex-shrink:0;background:var(--walnut);color:#eee6da;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;right:0;overflow-y:auto;z-index:50;}
+.sidebar-head{padding:20px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sidebar-head .logo{font-weight:900;font-size:17px;color:#fff;display:flex;align-items:center;gap:8px;}
+.sidebar-head .logo span.dot{width:9px;height:9px;border-radius:50%;background:var(--amber-light);}
+.sidebar-head .sub{font-size:11px;color:#a89a8a;margin-top:4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 18px;color:#cfc3b4;cursor:pointer;font-size:13px;font-weight:700;border-right:3px solid transparent;transition:.12s;}
+.nav-item .ic{font-size:16px;width:20px;text-align:center;}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff;}
+.nav-item.active{background:rgba(193,122,63,.16);color:#fff;border-right-color:var(--amber-light);}
+.nav-sep{padding:14px 18px 6px;font-size:10px;color:#8a7c6d;font-weight:700;letter-spacing:.5px;}
+.nav-foot{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);}
+.nav-foot .email{font-size:11px;color:#a89a8a;margin-bottom:8px;word-break:break-all;}
+.logout-btn{width:100%;background:rgba(161,61,61,.18);color:#e8a8a8;border:1px solid rgba(161,61,61,.3);padding:8px;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px;}
+.logout-btn:hover{background:rgba(161,61,61,.3);}
+
+.main{margin-right:230px;flex:1;padding:22px 28px 60px;max-width:1200px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:10px;flex-wrap:wrap;}
+.topbar h1{font-size:19px;font-weight:900;color:var(--walnut);}
+.topbar .menu-toggle{display:none;background:var(--walnut);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:16px;}
+.sync-pill{font-size:11px;background:var(--ok-bg);color:var(--ok);padding:5px 12px;border-radius:99px;font-weight:700;display:inline-flex;align-items:center;gap:6px;}
+.sync-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok);}
+
+.section{display:none;}
+.section.active{display:block;animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* dashboard */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px;}
+.stat-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden;}
+.stat-card .lbl{font-size:12px;color:var(--ink-soft);font-weight:700;margin-bottom:8px;}
+.stat-card .amt{font-size:23px;font-weight:900;color:var(--walnut);}
+.stat-card.accent-ok{border-top:3px solid var(--ok);}
+.stat-card.accent-bad{border-top:3px solid var(--bad);}
+.stat-card.accent-warn{border-top:3px solid var(--warn);}
+.stat-card.accent-amber{border-top:3px solid var(--amber);}
+.stat-card.hero{background:var(--walnut);color:#fff;}
+.stat-card.hero .lbl{color:#c9bba9;}
+.stat-card.hero .amt{color:#fff;font-size:27px;}
+
+/* cards / panels */
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
+.panel h2{font-size:15px;font-weight:900;color:var(--walnut);margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--cream);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.panel h2 .badge-total{font-size:12px;background:var(--cream);color:var(--walnut);padding:4px 10px;border-radius:99px;font-weight:700;}
+
+form.grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;background:var(--cream);padding:14px;border-radius:8px;margin-bottom:16px;border:1px solid var(--line);}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:11px;font-weight:700;color:var(--ink-soft);}
+.field input,.field select{padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;background:#fff;font-family:inherit;color:var(--ink);}
+.field input:focus,.field select:focus{outline:none;border-color:var(--amber);}
+.field-actions{display:flex;align-items:flex-end;gap:8px;grid-column:1/-1;}
+
+.btn{border:none;padding:9px 16px;border-radius:7px;cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;transition:.12s;}
+.btn-primary{background:var(--walnut);color:#fff;}
+.btn-primary:hover{background:var(--walnut-2);}
+.btn-amber{background:var(--amber);color:#fff;}
+.btn-amber:hover{background:#a86530;}
+.btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink);}
+.btn-ghost:hover{border-color:var(--amber);}
+.btn-danger{background:var(--bad-bg);color:var(--bad);padding:6px 10px;font-size:12px;}
+.btn-danger:hover{background:#f0d3d0;}
+.btn-edit{background:var(--warn-bg);color:var(--warn);padding:6px 10px;font-size:12px;}
+.btn-edit:hover{background:#f0dcb5;}
+.btn-print{background:#e7eef4;color:#2c5279;padding:6px 10px;font-size:12px;}
+.btn-print:hover{background:#d5e3ee;}
+.btn-wa{background:#25D366;color:#fff;}
+.btn-sm{padding:6px 10px;font-size:12px;}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:var(--cream);text-align:right;padding:10px 12px;font-weight:800;color:var(--walnut);white-space:nowrap;}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tbody tr:hover{background:#fbf7f0;}
+.clickable{color:var(--amber);font-weight:800;cursor:pointer;}
+.clickable:hover{text-decoration:underline;}
+.empty-row td{text-align:center;color:var(--ink-soft);padding:28px;font-style:italic;}
+
+.badge{padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;display:inline-block;}
+.b-cash{background:var(--ok-bg);color:var(--ok);}
+.b-card{background:var(--warn-bg);color:var(--warn);}
+.b-status-done{background:var(--ok-bg);color:var(--ok);}
+.b-status-pending{background:var(--warn-bg);color:var(--warn);}
+
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.tab-btn{background:var(--cream);border:1.5px solid transparent;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;color:var(--ink-soft);}
+.tab-btn.active{background:var(--walnut);color:#fff;}
+
+.back-btn{background:#fff;border:1.5px solid var(--line);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;margin-bottom:14px;display:inline-flex;align-items:center;gap:6px;}
+.back-btn:hover{border-color:var(--amber);}
+
+/* modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,15,12,.55);z-index:999;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:#fff;width:100%;max-width:480px;border-radius:14px;padding:24px;max-height:92vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.3);}
+.modal-box h3{font-size:16px;font-weight:900;color:var(--walnut);margin-bottom:16px;}
+
+.invoice-box{background:#fff;padding:0;}
+.inv-head{text-align:center;border-bottom:2px solid var(--walnut);padding-bottom:14px;margin-bottom:16px;}
+.inv-head h2{font-size:19px;color:var(--walnut);font-weight:900;}
+.inv-head p{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+.inv-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
+.inv-remain{margin-top:10px;background:var(--cream);padding:10px 12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;}
+.inv-remain b{color:var(--bad);font-size:17px;}
+.inv-foot{margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dashed var(--line);padding-top:14px;}
+.inv-foot .sig{font-size:11px;color:var(--ink-soft);}
+
+@media print{
+  body *{visibility:hidden!important;}
+  #printModal,#printModal *{visibility:visible!important;}
+  #printModal{position:fixed!important;inset:0!important;background:#fff!important;z-index:99999!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;padding-top:16px!important;}
+  .modal-box{box-shadow:none!important;max-width:100%!important;}
+  .no-print{display:none!important;}
+}
+
+@media (max-width:900px){
+  .sidebar{transform:translateX(105%);transition:transform .2s;box-shadow:-10px 0 30px rgba(0,0,0,.3);}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-right:0;padding:16px;}
+  .topbar .menu-toggle{display:inline-flex;}
+  form.grid-form{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:520px){
+  form.grid-form{grid-template-columns:1fr;}
+  table{font-size:12px;}
+}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--walnut);color:#fff;padding:12px 22px;border-radius:99px;font-weight:700;font-size:13px;z-index:9999;box-shadow:0 10px 25px rgba(0,0,0,.3);display:none;}
+.confirm-box .modal-box{max-width:380px;text-align:center;}
+.confirm-box p{color:var(--ink-soft);font-size:13px;margin-bottom:18px;}
+.confirm-actions{display:flex;gap:10px;justify-content:center;}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="brand-mark">🪚</div>
+    <h1>نُظُم — ورشة الأثاث</h1>
+    <p>سجّل دخولك بحساب جوجل الخاص فيك لتبدأ العمل. بياناتك محفوظة بحسابك فقط ولا يقدر يوصلها أي حدا غيرك.</p>
+    <button type="button" class="google-btn" onclick="loginWithGoogle()">
+      <svg width="19" height="19" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+      </svg>
+      المتابعة بحساب جوجل
+    </button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="logo"><span class="dot"></span>نُظُم</div>
+      <div class="sub">إدارة ورشة الأثاث</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding-bottom:10px;">
+      <div class="nav-item active" data-sec="s-home" onclick="goTo('s-home')"><span class="ic">🏠</span>الرئيسية</div>
+      <div class="nav-sep">الحسابات</div>
+      <div class="nav-item" data-sec="s-customers" onclick="goTo('s-customers')"><span class="ic">👥</span>الزبائن</div>
+      <div class="nav-item" data-sec="s-suppliers" onclick="goTo('s-suppliers')"><span class="ic">📦</span>الموردين</div>
+      <div class="nav-item" data-sec="s-orders" onclick="goTo('s-orders')"><span class="ic">📋</span>الطلبات</div>
+      <div class="nav-sep">الموارد والفريق</div>
+      <div class="nav-item" data-sec="s-resources" onclick="goTo('s-resources')"><span class="ic">🪵</span>المواد الخام</div>
+      <div class="nav-item" data-sec="s-tools" onclick="goTo('s-tools')"><span class="ic">🛠️</span>العدة والأجهزة</div>
+      <div class="nav-item" data-sec="s-employees" onclick="goTo('s-employees')"><span class="ic">👷</span>الموظفين والأجور</div>
+      <div class="nav-item" data-sec="s-expenses" onclick="goTo('s-expenses')"><span class="ic">💸</span>المصاريف</div>
+      <div class="nav-sep">أدوات</div>
+      <div class="nav-item" data-sec="s-search" onclick="goTo('s-search')"><span class="ic">🔍</span>البحث الشامل</div>
+      <div class="nav-item" data-sec="s-log" onclick="goTo('s-log')"><span class="ic">🕘</span>سجل العمليات</div>
+      <div class="nav-item" data-sec="s-settings" onclick="goTo('s-settings')"><span class="ic">⚙️</span>الإعدادات والنسخ الاحتياطي</div>
+    </div>
+    <div class="nav-foot">
+      <div class="email" id="userEmailDisplay"></div>
+      <button class="logout-btn" onclick="logout()">🚪 تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <h1 id="pageTitle">الرئيسية</h1>
+      </div>
+      <span class="sync-pill" id="syncPill">متصل ومتزامن سحابياً</span>
+    </div>
+
+    <!-- ===== HOME ===== -->
+    <section class="section active" id="s-home">
+      <div class="stat-grid">
+        <div class="stat-card hero"><div class="lbl">إجمالي ميزانية الورشة (صافي)</div><div class="amt num" id="dBudget">0 ₺</div></div>
+        <div class="stat-card accent-ok"><div class="lbl">إجمالي المبيعات</div><div class="amt num" id="dSales">0 ₺</div></div>
+        <div class="stat-card accent-warn"><div class="lbl">إجمالي المشتريات</div><div class="amt num" id="dPurchases">0 ₺</div></div>
+        <div class="stat-card accent-bad"><div class="lbl">ديون على الزبائن</div><div class="amt num" id="dCustDebt">0 ₺</div></div>
+        <div class="stat-card accent-bad"><div class="lbl">ديون للموردين</div><div class="amt num" id="dSuppDebt">0 ₺</div></div>
+        <div class="stat-card accent-amber"><div class="lbl">خسارة عمولة الكروت</div><div class="amt num" id="dCardLoss">0 ₺</div></div>
+      </div>
+      <div class="panel">
+        <h2>طلبات مستحقة التسليم قريباً</h2>
+        <table><thead><tr><th>الزبون</th><th>الطقم</th><th>تاريخ التسليم</th><th>الحالة</th></tr></thead><tbody id="dUpcomingOrders"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ===== CUSTOMERS ===== -->
+    <section class="section" id="s-customers">
+      <div id="custListView">
+        <div class="panel">
+          <h2>إضافة زبون جديد</h2>
+          <form class="grid-form" onsubmit="addCustomer(event)">
+            <div class="field"><label>اسم الزبون</label><input id="newCustName" required placeholder="مثال: أحمد يلماز"></div>
+            <div class="field"><label>رقم الهاتف</label><input id="newCustPhone" placeholder="05xxxxxxxxx"></div>
+            <div class="field-actions"><button class="btn btn-primary">➕ إضافة زبون</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>قائمة الزبائن <span class="badge-total" id="custCountBadge">0</span></h2>
+          <table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجمالي الفواتير</th><th>المدفوع</th><th>الباقي عليه</th><th>إجراء</th></tr></thead><tbody id="customersTable"></tbody></table>
+        </div>
+      </div>
+      <div id="custDetailView" class="hidden">
+        <input type="hidden" id="activeCustId">
+        <button class="back-btn" onclick="backToList('cust')">→ رجوع لقائمة الزبائن</button>
+        <div class="panel">
+          <h2 id="detCustTitle">حساب الزبون</h2>
+          <form id="custActionForm" class="grid-form" onsubmit="saveCustomerAction(event)">
+            <input type="hidden" id="editCustTxId">
+            <div class="field"><label>نوع الحركة</label>
+              <select id="custTxType" onchange="toggleCustFormMode()">
+                <option value="bill">فاتورة بضاعة</option>
+                <option value="payment">دفعة مالية (قبض)</option>
+              </select>
+            </div>
+            <div class="field"><label>البيان / التفاصيل</label><input id="billCustDesc" required placeholder="غرفة نوم، صالون..."></div>
+            <div class="field" id="groupCustTotal"><label>قيمة الفاتورة</label><input type="number" step="0.01" id="billCustTotal" placeholder="0"></div>
+            <div class="field"><label>المبلغ المدفوع الآن</label><input type="number" step="0.01" id="billCustPaid" value="0" required placeholder="0"></div>
+            <div class="field"><label>طريقة الدفع</label>
+              <select id="billCustMethod">
+                <option value="كاش">كاش</option>
+                <option value="كرت تقسيط 10%">كرت تقسيط (خصم 10%)</option>
+                <option value="تيك چكيم 5%">تيك چكيم (خصم 5%)</option>
+                <option value="تيك چكيم 0%">تيك چكيم (بدون خصم)</option>
+              </select>
+            </div>
+            <div class="field-actions">
+              <button class="btn btn-primary" id="custSubmitBtn">💾 حفظ الحركة</button>
+              <button type="button" class="btn btn-ghost hidden" id="cancelCustEditBtn" onclick="cancelCustEdit()">إلغاء التعديل</button>
+            </div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>سجل حركات الزبون</h2>
+          <table><thead><tr><th>التاريخ</th><th>البيان</th><th>البضاعة</th><th>المدفوع</th><th>الطريقة</th><th>الباقي</th><th>إجراء</th></tr></thead><tbody id="customerTxTable"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SUPPLIERS ===== -->
+    <section class="section" id="s-suppliers">
+      <div id="suppListView">
+        <div class="panel">
+          <h2>إضافة مورد جديد</h2>
+          <form class="grid-form" onsubmit="addSupplier(event)">
+            <div class="field"><label>اسم المورد</label><input id="newSuppName" required placeholder="مثال: معرض الخشب الذهبي"></div>
+            <div class="field"><label>رقم الهاتف</label><input id="newSuppPhone" placeholder="05xxxxxxxxx"></div>
+            <div class="field-actions"><button class="btn btn-primary">➕ إضافة مورد</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>قائمة الموردين <span class="badge-total" id="suppCountBadge">0</span></h2>
+          <table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجمالي المشتريات</th><th>المسدد</th><th>الباقي له</th><th>إجراء</th></tr></thead><tbody id="suppliersTable"></tbody></table>
+        </div>
+      </div>
+      <div id="suppDetailView" class="hidden">
+        <input type="hidden" id="activeSuppId">
+        <button class="back-btn" onclick="backToList('supp')">→ رجوع لقائمة الموردين</button>
+        <div class="panel">
+          <h2 id="detSuppTitle">حساب المورد</h2>
+          <form id="suppActionForm" class="grid-form" onsubmit="saveSupplierAction(event)">
+            <input type="hidden" id="editSuppTxId">
+            <div class="field"><label>نوع الحركة</label>
+              <select id="suppTxType" onchange="toggleSuppFormMode()">
+                <option value="bill">فاتورة بضاعة</option>
+                <option value="payment">تسديد دفعة مالية</option>
+              </select>
+            </div>
+            <div class="field"><label>البيان / التفاصيل</label><input id="billSuppDesc" required placeholder="خشب، إسفنج..."></div>
+            <div class="field" id="groupSuppTotal"><label>قيمة الفاتورة</label><input type="number" step="0.01" id="billSuppTotal" placeholder="0"></div>
+            <div class="field" id="groupSuppType"><label>نوع الفاتورة</label>
+              <select id="billSuppType">
+                <option value="عادية">عادية (بدون خصم)</option>
+                <option value="كرت_10">مضاف عليها كرت تقسيط 10%</option>
+                <option value="چكيم_5">مضاف عليها تيك چكيم 5%</option>
+              </select>
+            </div>
+            <div class="field"><label>المبلغ المدفوع الآن</label><input type="number" step="0.01" id="billSuppPaid" value="0" required placeholder="0"></div>
+            <div class="field"><label>طريقة الدفع</label>
+              <select id="billSuppMethod">
+                <option value="كاش">كاش</option>
+                <option value="كرت تقسيط 10%">كرت تقسيط (خصم 10%)</option>
+                <option value="تيك چكيم 5%">تيك چكيم (خصم 5%)</option>
+                <option value="تيك چكيم 0%">تيك چكيم (بدون خصم)</option>
+              </select>
+            </div>
+            <div class="field-actions">
+              <button class="btn btn-primary" id="suppSubmitBtn">💾 حفظ الحركة</button>
+              <button type="button" class="btn btn-ghost hidden" id="cancelSuppEditBtn" onclick="cancelSuppEdit()">إلغاء التعديل</button>
+            </div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>سجل حركات المورد</h2>
+          <table><thead><tr><th>التاريخ</th><th>البيان</th><th>الفاتورة</th><th>المسدد</th><th>الطريقة</th><th>خسارة الكرت</th><th>الباقي</th><th>إجراء</th></tr></thead><tbody id="supplierTxTable"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ORDERS ===== -->
+    <section class="section" id="s-orders">
+      <div class="panel">
+        <h2 id="orderFormTitle">تسجيل طلب جديد</h2>
+        <form id="orderForm" class="grid-form" onsubmit="saveOrder(event)">
+          <input type="hidden" id="editOrderId">
+          <div class="field"><label>الزبون</label><select id="orderCustSelect" required></select></div>
+          <div class="field"><label>نوع الطقم</label><input id="orderType" required placeholder="مثال: صالون مودرن"></div>
+          <div class="field"><label>سعر الطقم</label><input type="number" step="0.01" id="orderPrice" required placeholder="0"></div>
+          <div class="field"><label>تاريخ التسليم المتوقع</label><input type="date" id="orderDueDate" required></div>
+          <div class="field"><label>نوع القماش</label><input id="orderFabric" placeholder="مخمل بيج"></div>
+          <div class="field"><label>نوع الأرجل</label><input id="orderLegs" placeholder="خشب زان"></div>
+          <div class="field" style="grid-column:1/-1;"><label>تفاصيل إضافية</label><input id="orderExtra" placeholder="ملاحظات..."></div>
+          <div class="field-actions">
+            <button class="btn btn-primary" id="orderSubmitBtn">➕ إضافة الطلب</button>
+            <button type="button" class="btn btn-ghost hidden" id="cancelOrderEditBtn" onclick="cancelOrderEdit()">إلغاء</button>
+          </div>
+        </form>
+      </div>
+      <div class="panel">
+        <h2>قائمة الطلبات <span class="badge-total" id="orderCountBadge">0</span></h2>
+        <table><thead><tr><th>التاريخ</th><th>الزبون</th><th>الطقم</th><th>السعر</th><th>التسليم</th><th>القماش/الأرجل</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="ordersTable"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ===== RESOURCES ===== -->
+    <section class="section" id="s-resources">
+      <div class="panel">
+        <h2>إدارة المواد الخام والمخزون</h2>
+        <div class="tabs" id="resourceTabs">
+          <button class="tab-btn active" data-cat="wood" onclick="switchResourceTab('wood',this)">🪵 خشب</button>
+          <button class="tab-btn" data-cat="foam" onclick="switchResourceTab('foam',this)">🧽 سفنج</button>
+          <button class="tab-btn" data-cat="fabric" onclick="switchResourceTab('fabric',this)">🧵 قماش</button>
+          <button class="tab-btn" data-cat="hardware" onclick="switchResourceTab('hardware',this)">🔩 نواعم/إكسسوارات</button>
+        </div>
+        <form class="grid-form" onsubmit="saveResource(event)">
+          <input type="hidden" id="resourceCategory" value="wood">
+          <input type="hidden" id="editResourceId">
+          <div class="field"><label>اسم الصنف</label><input id="resName" required placeholder="خشب زان / سفنج كثافة 36"></div>
+          <div class="field"><label>القياسات / المواصفات</label><input id="resDims" placeholder="سمك 5سم، عرض 140سم"></div>
+          <div class="field"><label>الكمية المتوفرة</label><input type="number" step="0.01" id="resQty" required placeholder="0"></div>
+          <div class="field"><label>ملاحظات</label><input id="resNote" placeholder="ملاحظات..."></div>
+          <div class="field-actions"><button class="btn btn-primary" id="resSubmitBtn">➕ إضافة للمخزون</button></div>
+        </form>
+        <table><thead><tr><th>القسم</th><th>الصنف</th><th>القياسات</th><th>الكمية</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="resourcesTable"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ===== TOOLS ===== -->
+    <section class="section" id="s-tools">
+      <div class="panel">
+        <h2>العدة والأجهزة <span class="badge-total" id="toolsSumBadge">0 ₺</span></h2>
+        <p style="font-size:12px;color:var(--ink-soft);margin:-6px 0 14px;">هذا القسم مستقل تماماً عن حسابات الأرباح والمصاريف التشغيلية — لتوثيق أصول الورشة فقط.</p>
+        <form class="grid-form" onsubmit="addTool(event)">
+          <input type="hidden" id="editToolId">
+          <div class="field"><label>اسم العدة / الجهاز</label><input id="toolName" required placeholder="دباسة هواء، منشار..."></div>
+          <div class="field"><label>التكلفة</label><input type="number" step="0.01" id="toolPrice" required placeholder="0"></div>
+          <div class="field"><label>ملاحظات</label><input id="toolNote" placeholder="ملاحظات..."></div>
+          <div class="field-actions"><button class="btn btn-primary" id="toolSubmitBtn">➕ تسجيل العدة</button></div>
+        </form>
+        <table><thead><tr><th>التاريخ</th><th>الاسم</th><th>التكلفة</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="toolsTable"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ===== EMPLOYEES ===== -->
+    <section class="section" id="s-employees">
+      <div id="empListView">
+        <div class="panel">
+          <h2>إضافة موظف جديد</h2>
+          <form class="grid-form" onsubmit="addEmployee(event)">
+            <div class="field"><label>اسم الموظف</label><input id="newEmpName" required placeholder="مثال: محمد أوزتورك"></div>
+            <div class="field"><label>الدور / الوظيفة</label><input id="newEmpRole" placeholder="نجار، منجّد..."></div>
+            <div class="field"><label>رقم الهاتف</label><input id="newEmpPhone" placeholder="05xxxxxxxxx"></div>
+            <div class="field-actions"><button class="btn btn-primary">➕ إضافة موظف</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>قائمة الموظفين <span class="badge-total" id="empCountBadge">0</span></h2>
+          <table><thead><tr><th>الاسم</th><th>الدور</th><th>الهاتف</th><th>إجمالي الأجور المدفوعة</th><th>إجراء</th></tr></thead><tbody id="employeesTable"></tbody></table>
+        </div>
+      </div>
+      <div id="empDetailView" class="hidden">
+        <input type="hidden" id="activeEmpId">
+        <button class="back-btn" onclick="backToList('emp')">→ رجوع لقائمة الموظفين</button>
+        <div class="panel">
+          <h2 id="detEmpTitle">حساب الموظف</h2>
+          <form id="empActionForm" class="grid-form" onsubmit="saveEmployeeAction(event)">
+            <input type="hidden" id="editEmpTxId">
+            <div class="field"><label>البيان</label><input id="empTxDesc" required placeholder="أجر أسبوعي، سلفة..."></div>
+            <div class="field"><label>المبلغ</label><input type="number" step="0.01" id="empTxAmount" required placeholder="0"></div>
+            <div class="field"><label>طريقة الدفع</label>
+              <select id="empTxMethod">
+                <option value="كاش">كاش</option>
+                <option value="كرت تقسيط 10%">كرت تقسيط (خصم 10%)</option>
+                <option value="تيك چكيم 5%">تيك چكيم (خصم 5%)</option>
+                <option value="تيك چكيم 0%">تيك چكيم (بدون خصم)</option>
+              </select>
+            </div>
+            <div class="field-actions">
+              <button class="btn btn-primary" id="empSubmitBtn">💾 تسجيل الأجر</button>
+              <button type="button" class="btn btn-ghost hidden" id="cancelEmpEditBtn" onclick="cancelEmpEdit()">إلغاء التعديل</button>
+            </div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>سجل أجور الموظف</h2>
+          <table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>الطريقة</th><th>خسارة الكرت</th><th>إجراء</th></tr></thead><tbody id="employeeTxTable"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== EXPENSES ===== -->
+    <section class="section" id="s-expenses">
+      <div class="panel">
+        <h2>المصاريف الثابتة <span class="badge-total" id="expSumBadge">0 ₺</span></h2>
+        <form class="grid-form" onsubmit="addExpense(event)">
+          <div class="field"><label>البيان</label><input id="expTitle" required placeholder="إيجار، كهرباء، ماء..."></div>
+          <div class="field"><label>المبلغ</label><input type="number" step="0.01" id="expAmount" required placeholder="0"></div>
+          <div class="field"><label>طريقة الدفع</label>
+            <select id="expMethod">
+              <option value="كاش">كاش</option>
+              <option value="كرت تقسيط 10%">كرت تقسيط (خصم 10%)</option>
+              <option value="تيك چكيم 5%">تيك چكيم (خصم 5%)</option>
+              <option value="تيك چكيم 0%">تيك چكيم (بدون خصم)</option>
+            </select>
+          </div>
+          <div class="field-actions"><button class="btn btn-primary">➕ تسجيل المصروف</button></div>
+        </form>
+        <table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>الطريقة</th><th>خسارة الكرت</th><th>إجراء</th></tr></thead><tbody id="expensesTable"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ===== SEARCH ===== -->
+    <section class="section" id="s-search">
+      <div class="panel">
+        <h2>البحث الشامل</h2>
+        <div class="field" style="max-width:420px;margin-bottom:10px;">
+          <label>ابحث باسم زبون، مورد، موظف، نوع طلب أو قماش</label>
+          <input id="globalSearchInput" oninput="performGlobalSearch()" placeholder="اكتب للبحث الفوري...">
+        </div>
+        <div id="searchResultsContainer"></div>
+      </div>
+    </section>
+
+    <!-- ===== LOG ===== -->
+    <section class="section" id="s-log">
+      <div class="panel">
+        <h2>سجل العمليات (Audit Log)</h2>
+        <table><thead><tr><th>الوقت</th><th>نوع العملية</th><th>التفاصيل</th></tr></thead><tbody id="auditLogTable"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ===== SETTINGS ===== -->
+    <section class="section" id="s-settings">
+      <div class="panel">
+        <h2>إعدادات الفاتورة</h2>
+        <form class="grid-form" onsubmit="saveInvoiceSettings(event)">
+          <div class="field"><label>اسم الورشة / المحل</label><input id="setInvTitle" required></div>
+          <div class="field"><label>رقم الهاتف الرسمي (لـ QR)</label><input id="setInvPhone" required></div>
+          <div class="field" style="grid-column:1/-1;"><label>العنوان</label><input id="setInvAddress" required></div>
+          <div class="field-actions"><button class="btn btn-primary">💾 حفظ الإعدادات</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h2>النسخ الاحتياطي</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-amber" onclick="exportBackup()">📥 تصدير نسخة احتياطية (JSON)</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📤 استعادة نسخة احتياطية</button>
+          <input type="file" id="importFile" class="hidden" accept=".json" onchange="importBackup(event)">
+        </div>
+      </div>
+      <div class="panel">
+        <h2 style="color:var(--bad);">منطقة الخطر</h2>
+        <p style="font-size:12px;color:var(--ink-soft);margin-bottom:12px;">تصفير البيانات يحذف كل شي بشكل نهائي من حسابك السحابي. تأكد من أخذ نسخة احتياطية أولاً.</p>
+        <button class="btn" style="background:var(--bad);color:#fff;" onclick="resetCloudData()">🗑️ تصفير كل البيانات</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ PRINT MODAL ============ -->
+<div id="printModal" class="modal-overlay">
+  <div class="modal-box invoice-box">
+    <div id="printableInvoiceArea">
+      <div class="inv-head">
+        <h2 id="invHeaderTitle">ورشة الأثاث</h2>
+        <p id="invHeaderAddress"></p>
+        <p id="invHeaderPhone" style="font-weight:700;"></p>
+      </div>
+      <div class="inv-row"><span><b>التاريخ:</b> <span id="pDate"></span></span><span><b>الطريقة:</b> <span id="pMethod"></span></span></div>
+      <div class="inv-row"><span><b>الحساب:</b> <span id="pEntityName" style="font-weight:800;"></span></span></div>
+      <div class="inv-row"><span><b>البيان:</b> <span id="pDesc"></span></span></div>
+      <hr style="border:0;border-top:1px dashed var(--line);margin:8px 0;">
+      <div class="inv-row"><span><b>القيمة الإجمالية:</b> <span id="pTotal" class="num"></span></span><span><b>المدفوع:</b> <span id="pPaid" class="num"></span></span></div>
+      <div class="inv-remain"><span style="font-weight:700;">المبلغ المتبقي</span><b id="pRem" class="num"></b></div>
+      <div class="inv-foot">
+        <div class="sig">توقيع الورشة / الختم:<br><br>...................................</div>
+        <div id="qrcode"></div>
+      </div>
+    </div>
+    <div class="no-print" style="margin-top:22px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+      <button class="btn btn-wa" onclick="shareInvoiceWhatsAppPdf()">مشاركة PDF 💬</button>
+      <button class="btn btn-primary" onclick="window.print()">طباعة 🖨️</button>
+      <button class="btn btn-ghost" onclick="closeModal('printModal')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DELIVER MODAL ============ -->
+<div id="deliverModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3>تسليم الطلب وإصدار فاتورة للزبون</h3>
+    <form id="deliverForm" onsubmit="confirmDelivery(event)">
+      <input type="hidden" id="deliverOrderId">
+      <p id="deliverInfoText" style="font-size:13px;background:var(--cream);padding:10px;border-radius:8px;margin-bottom:14px;"></p>
+      <div class="field" style="margin-bottom:10px;"><label>المبلغ المدفوع الآن</label><input type="number" step="0.01" id="deliverPaidAmount" value="0"></div>
+      <div class="field" style="margin-bottom:16px;"><label>طريقة الدفع</label>
+        <select id="deliverMethod">
+          <option value="كاش">كاش</option>
+          <option value="كرت تقسيط 10%">كرت تقسيط (خصم 10%)</option>
+          <option value="تيك چكيم 5%">تيك چكيم (خصم 5%)</option>
+          <option value="تيك چكيم 0%">تيك چكيم (بدون خصم)</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-primary">✅ تأكيد التسليم</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal('deliverModal')">إغلاق</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ CONFIRM MODAL ============ -->
+<div id="confirmModal" class="modal-overlay confirm-box">
+  <div class="modal-box">
+    <h3 id="confirmTitle">تأكيد الحذف</h3>
+    <p id="confirmMsg">هل أنت متأكد؟ هذا الإجراء لا يمكن التراجع عنه.</p>
+    <div class="confirm-actions">
+      <button class="btn" style="background:var(--bad);color:#fff;" id="confirmYesBtn">نعم، احذف</button>
+      <button class="btn btn-ghost" onclick="closeModal('confirmModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ FIREBASE ============ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAil3oUaJQMW8ErUVFdLaugx_gbXVlPM-E",
+  authDomain: "my-updated-workmanager.firebaseapp.com",
+  projectId: "my-updated-workmanager",
+  storageBucket: "my-updated-workmanager.firebasestorage.app",
+  messagingSenderId: "47836637388",
+  appId: "1:47836637388:web:4e27f798d52a0a0947ba69",
+  measurementId: "G-VZ879BZX97"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const dbCloud = getFirestore(app);
+let currentUser = null;
+
+window.appData = { customers: [], suppliers: [], employees: [], orders: [], resources: [], tools: [], expenses: [], logs: [], invoiceSettings: { title: "ورشة الأثاث والتنجيد", phone: "+905000000000", address: "تركيا" } };
+
+setPersistence(auth, browserLocalPersistence).catch(e => console.error(e));
+
+window.loginWithGoogle = function () {
+  const provider = new GoogleAuthProvider();
+  signInWithPopup(auth, provider).catch(err => alert("فشل تسجيل الدخول: " + err.message));
+};
+window.logout = function () { signOut(auth).then(() => location.reload()); };
+
+async function loadCloudData() {
+  if (!currentUser) return;
+  try {
+    const userDocRef = doc(dbCloud, "workshops", currentUser.uid);
+    const userSnap = await getDoc(userDocRef);
+    window.appData.invoiceSettings = (userSnap.exists() && userSnap.data().invoiceSettings) || { title: "ورشة الأثاث والتنجيد", phone: "+905000000000", address: "تركيا" };
+
+    window.appData.customers = [];
+    window.appData.suppliers = [];
+    window.appData.employees = [];
+    window.appData.orders = [];
+    window.appData.resources = [];
+    window.appData.tools = [];
+    window.appData.expenses = [];
+    window.appData.logs = [];
+
+    const custSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers"));
+    for (let d of custSnap.docs) {
+      let c = d.data(); c.txs = [];
+      const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", d.id, "transactions"));
+      txSnap.forEach(t => c.txs.push(t.data()));
+      c.txs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      window.appData.customers.push(c);
+    }
+
+    const suppSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers"));
+    for (let d of suppSnap.docs) {
+      let s = d.data(); s.txs = [];
+      const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers", d.id, "transactions"));
+      txSnap.forEach(t => s.txs.push(t.data()));
+      s.txs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      window.appData.suppliers.push(s);
+    }
+
+    const empSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees"));
+    for (let d of empSnap.docs) {
+      let em = d.data(); em.txs = [];
+      const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees", d.id, "transactions"));
+      txSnap.forEach(t => em.txs.push(t.data()));
+      em.txs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      window.appData.employees.push(em);
+    }
+
+    const [orderSnap, resSnap, toolSnap, expSnap, logSnap] = await Promise.all([
+      getDocs(collection(dbCloud, "workshops", currentUser.uid, "orders")),
+      getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources")),
+      getDocs(collection(dbCloud, "workshops", currentUser.uid, "tools")),
+      getDocs(collection(dbCloud, "workshops", currentUser.uid, "expenses")),
+      getDocs(collection(dbCloud, "workshops", currentUser.uid, "logs"))
+    ]);
+    orderSnap.forEach(d => window.appData.orders.push(d.data()));
+    resSnap.forEach(d => window.appData.resources.push(d.data()));
+    toolSnap.forEach(d => window.appData.tools.push(d.data()));
+    expSnap.forEach(d => window.appData.expenses.push(d.data()));
+    logSnap.forEach(d => window.appData.logs.push(d.data()));
+    window.appData.logs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    window.refreshUI();
+    window.checkUpcomingOrdersForNotifications();
+    document.getElementById('syncPill').textContent = 'متصل ومتزامن سحابياً';
+  } catch (e) {
+    console.error("تعذر الاتصال بالسحابة:", e);
+    document.getElementById('syncPill').textContent = '⚠️ غير متصل بالسحابة';
+    window.showToast("تعذر الاتصال بقاعدة البيانات. تحقق من اتصال الإنترنت.");
+  }
+}
+
+window.cloudSave = {
+  customerInfo: async c => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(c.id)), { id: c.id, name: c.name, phone: c.phone }),
+  customerTx: async (cid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(t.id)), t),
+  deleteCustomerTx: async (cid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(tid))),
+  deleteCustomerDoc: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(id))),
+  supplierInfo: async s => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { id: s.id, name: s.name, phone: s.phone }),
+  supplierTx: async (sid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(t.id)), t),
+  deleteSupplierTx: async (sid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(tid))),
+  deleteSupplierDoc: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(id))),
+  employeeInfo: async em => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(em.id)), { id: em.id, name: em.name, phone: em.phone, role: em.role }),
+  employeeTx: async (eid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(t.id)), t),
+  deleteEmployeeTx: async (eid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(tid))),
+  deleteEmployeeDoc: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(id))),
+  order: async o => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(o.id)), o),
+  deleteOrder: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(id))),
+  resource: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), r),
+  deleteResource: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(id))),
+  tool: async t => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "tools", String(t.id)), t),
+  deleteTool: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "tools", String(id))),
+  expense: async ex => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(ex.id)), ex),
+  deleteExpense: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(id))),
+  log: async l => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "logs", String(l.id)), l),
+  settings: async () => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid), { invoiceSettings: window.appData.invoiceSettings }, { merge: true })
+};
+
+window.resetCloudData = function () {
+  window.askConfirm("تصفير كل البيانات نهائياً", "سيتم حذف كل الزبائن والموردين والطلبات وكل البيانات من حسابك السحابي بشكل نهائي. لا يمكن التراجع عن هذا الإجراء إطلاقاً.", async () => {
+    try {
+      const cats = ["customers", "suppliers", "employees", "orders", "resources", "tools", "expenses", "logs"];
+      for (let cat of cats) {
+        const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, cat));
+        for (let d of snap.docs) {
+          if (cat === "customers" || cat === "suppliers" || cat === "employees") {
+            const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, cat, d.id, "transactions"));
+            for (let sd of subSnap.docs) await deleteDoc(sd.ref);
+          }
+          await deleteDoc(d.ref);
+        }
+      }
+      window.showToast("تم تصفير كل البيانات بنجاح.");
+      location.reload();
+    } catch (e) { window.showToast("حدث خطأ أثناء التصفير."); }
+  });
+};
+
+window.exportBackup = function () {
+  let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.appData, null, 2));
+  let a = document.createElement('a');
+  a.href = dataStr;
+  a.download = `workshop_backup_${window.getDate()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  window.showToast("تم تصدير النسخة الاحتياطية.");
+};
+
+window.importBackup = function (event) {
+  let file = event.target.files[0];
+  if (!file) return;
+  window.askConfirm("استعادة نسخة احتياطية", "سيتم استبدال كل البيانات الحالية بمحتوى الملف المستورد. هل تريد المتابعة؟", () => {
+    let reader = new FileReader();
+    reader.onload = async function (e) {
+      try {
+        let imported = JSON.parse(e.target.result);
+        if (!imported || !Array.isArray(imported.customers)) { window.showToast("❌ ملف غير صالح."); return; }
+        window.appData = imported;
+        for (let c of imported.customers || []) { await window.cloudSave.customerInfo(c); for (let t of c.txs || []) await window.cloudSave.customerTx(c.id, t); }
+        for (let s of imported.suppliers || []) { await window.cloudSave.supplierInfo(s); for (let t of s.txs || []) await window.cloudSave.supplierTx(s.id, t); }
+        for (let em of imported.employees || []) { await window.cloudSave.employeeInfo(em); for (let t of em.txs || []) await window.cloudSave.employeeTx(em.id, t); }
+        for (let o of imported.orders || []) await window.cloudSave.order(o);
+        for (let r of imported.resources || []) await window.cloudSave.resource(r);
+        for (let t of imported.tools || []) await window.cloudSave.tool(t);
+        for (let ex of imported.expenses || []) await window.cloudSave.expense(ex);
+        await window.cloudSave.settings();
+        window.showToast("✅ تمت الاستعادة بنجاح.");
+        location.reload();
+      } catch (err) { window.showToast("❌ ملف غير صالح."); }
+    };
+    reader.readAsText(file);
+  });
+};
+
+onAuthStateChanged(auth, async user => {
+  const loginScreen = document.getElementById('login-screen');
+  const appBox = document.getElementById('app');
+  if (user) {
+    currentUser = user;
+    document.getElementById('userEmailDisplay').textContent = user.email;
+    loginScreen.classList.add('hidden');
+    appBox.classList.remove('hidden');
+    await loadCloudData();
+  } else {
+    currentUser = null;
+    loginScreen.classList.remove('hidden');
+    appBox.classList.add('hidden');
+  }
+});
+</script>
+
+<!-- ============ APP LOGIC ============ -->
+<script>
+/* ---------- helpers ---------- */
+function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function uid(){ return (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2); }
+function money(n){ return (Number(n)||0).toLocaleString('en-US', {maximumFractionDigits:2}) + ' ₺'; }
+function getDate(){ return new Date().toISOString().split('T')[0]; }
+function getDateTimeNow(){ let n = new Date(); return n.toISOString().split('T')[0] + ' ' + n.toTimeString().split(' ')[0]; }
+window.getDate = getDate;
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>{ t.style.display='none'; }, 2600);
+}
+window.showToast = showToast;
+
+let _confirmCallback = null;
+function askConfirm(title, msg, onYes){
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  _confirmCallback = onYes;
+  document.getElementById('confirmModal').classList.add('show');
+}
+window.askConfirm = askConfirm;
+document.getElementById('confirmYesBtn').onclick = function(){
+  const cb = _confirmCallback;
+  closeModal('confirmModal');
+  if(cb) cb();
+};
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+window.closeModal = closeModal;
+
+function getCardLossRate(method){
+  if(method.includes('10%')) return 0.10;
+  if(method.includes('5%')) return 0.05;
+  return 0; // كاش أو تيك چكيم 0%
+}
+window.getCardLossRate = getCardLossRate;
+
+function addLog(type, details){
+  if(!window.appData.logs) window.appData.logs = [];
+  let l = { id: uid(), time: getDateTimeNow(), type: type, details: details, createdAt: Date.now() };
+  window.appData.logs.unshift(l);
+  if(window.appData.logs.length > 200) window.appData.logs.pop();
+  if(window.cloudSave) window.cloudSave.log(l);
+}
+
+/* ---------- navigation ---------- */
+function goTo(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelector(`.nav-item[data-sec="${id}"]`).classList.add('active');
+  const titles = {'s-home':'الرئيسية','s-customers':'الزبائن','s-suppliers':'الموردين','s-orders':'الطلبات','s-resources':'المواد الخام','s-tools':'العدة والأجهزة','s-employees':'الموظفين والأجور','s-expenses':'المصاريف','s-search':'البحث الشامل','s-log':'سجل العمليات','s-settings':'الإعدادات'};
+  document.getElementById('pageTitle').textContent = titles[id] || '';
+  document.getElementById('sidebar').classList.remove('open');
+  if(id === 's-orders'){ populateOrderCustomerSelect(); if(!document.getElementById('editOrderId').value) document.getElementById('orderDueDate').value = getDate(); }
+  if(id === 's-resources') renderResources();
+  refreshUI();
+}
+window.goTo = goTo;
+
+function backToList(type){
+  if(type==='cust'){ document.getElementById('custDetailView').classList.add('hidden'); document.getElementById('custListView').classList.remove('hidden'); }
+  if(type==='supp'){ document.getElementById('suppDetailView').classList.add('hidden'); document.getElementById('suppListView').classList.remove('hidden'); }
+  if(type==='emp'){ document.getElementById('empDetailView').classList.add('hidden'); document.getElementById('empListView').classList.remove('hidden'); }
+  refreshUI();
+}
+window.backToList = backToList;
+
+/* ---------- invoice settings ---------- */
+window.saveInvoiceSettings = function(e){
+  e.preventDefault();
+  window.appData.invoiceSettings = {
+    title: document.getElementById('setInvTitle').value,
+    phone: document.getElementById('setInvPhone').value,
+    address: document.getElementById('setInvAddress').value
+  };
+  addLog("تعديل إعدادات", "تحديث إعدادات الفاتورة");
+  if(window.cloudSave) window.cloudSave.settings();
+  showToast("✅ تم حفظ الإعدادات.");
+};
+function loadInvoiceSettingsToForm(){
+  let s = window.appData.invoiceSettings || {title:"ورشة الأثاث والتنجيد", phone:"+905000000000", address:"تركيا"};
+  document.getElementById('setInvTitle').value = s.title;
+  document.getElementById('setInvPhone').value = s.phone;
+  document.getElementById('setInvAddress').value = s.address;
+}
+
+/* ---------- notifications ---------- */
+function checkUpcomingOrdersForNotifications(){
+  if(!("Notification" in window) || Notification.permission !== "granted") return;
+  let today = getDate();
+  (window.appData.orders||[]).forEach(o=>{
+    if(o.status !== 'مكتمل' && o.dueDate === today){
+      new Notification("تنبيه موعد تسليم طلب!", { body: `${o.customerName} - ${o.type} موعد تسليمه اليوم` });
+    }
+  });
+}
+window.checkUpcomingOrdersForNotifications = checkUpcomingOrdersForNotifications;
+
+/* ---------- CUSTOMERS ---------- */
+window.addCustomer = function(e){
+  e.preventDefault();
+  let c = { id: uid(), name: document.getElementById('newCustName').value.trim(), phone: document.getElementById('newCustPhone').value.trim() || '-', txs: [] };
+  if(!c.name) return;
+  window.appData.customers.push(c);
+  addLog("إضافة زبون", `تم إضافة الزبون: ${c.name}`);
+  if(window.cloudSave) window.cloudSave.customerInfo(c);
+  save(); e.target.reset(); showToast("✅ تمت إضافة الزبون.");
+};
+function renderCustomers(){
+  let html = '';
+  window.appData.customers.forEach(c=>{
+    if(!c.txs) c.txs = [];
+    let tot = c.txs.reduce((a,b)=>a+(b.total||0),0), paid = c.txs.reduce((a,b)=>a+(b.paid||0),0), rem = tot-paid;
+    html += `<tr><td class="clickable" onclick="openCust('${c.id}')">${esc(c.name)}</td><td>${esc(c.phone)}</td><td class="num">${money(tot)}</td><td class="num">${money(paid)}</td><td class="num" style="color:${rem>0?'var(--bad)':'inherit'};font-weight:800;">${money(rem)}</td><td><button class="btn btn-danger" onclick="delCust('${c.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('customersTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا يوجد زبائن مسجلين بعد</td></tr>`;
+  document.getElementById('custCountBadge').textContent = window.appData.customers.length;
+}
+window.delCust = function(id){
+  let c = window.appData.customers.find(x=>x.id===id);
+  if(!c) return;
+  askConfirm("حذف الزبون", `هل أنت متأكد من حذف الزبون "${c.name}" وكل فواتيره؟ لا يمكن التراجع.`, ()=>{
+    addLog("حذف زبون", `حذف الزبون: ${c.name}`);
+    window.appData.customers = window.appData.customers.filter(x=>x.id!==id);
+    if(window.cloudSave) window.cloudSave.deleteCustomerDoc(id);
+    save(); showToast("تم حذف الزبون.");
+  });
+};
+window.openCust = function(id){
+  let c = window.appData.customers.find(x=>x.id===id);
+  if(!c) return;
+  document.getElementById('activeCustId').value = c.id;
+  document.getElementById('detCustTitle').textContent = 'حساب الزبون: ' + c.name;
+  document.getElementById('custListView').classList.add('hidden');
+  document.getElementById('custDetailView').classList.remove('hidden');
+  cancelCustEdit();
+  renderCustTxs(c);
+};
+window.toggleCustFormMode = function(){
+  let type = document.getElementById('custTxType').value;
+  document.getElementById('groupCustTotal').style.display = type==='payment' ? 'none':'flex';
+  if(type==='payment') document.getElementById('billCustTotal').value = 0;
+};
+window.saveCustomerAction = function(e){
+  e.preventDefault();
+  let c = window.appData.customers.find(x=>x.id===document.getElementById('activeCustId').value);
+  if(!c) return;
+  if(!c.txs) c.txs = [];
+  let editId = document.getElementById('editCustTxId').value;
+  let type = document.getElementById('custTxType').value;
+  let total = type==='payment' ? 0 : (parseFloat(document.getElementById('billCustTotal').value)||0);
+  let paid = parseFloat(document.getElementById('billCustPaid').value)||0;
+  let desc = document.getElementById('billCustDesc').value.trim();
+  let method = document.getElementById('billCustMethod').value;
+  let txId = editId || uid();
+  let tx = { id: txId, date: getDate(), desc, total, paid, method, createdAt: Date.now() };
+  if(editId){
+    let idx = c.txs.findIndex(t=>t.id===editId);
+    if(idx!==-1) tx.createdAt = c.txs[idx].createdAt;
+    if(idx!==-1) c.txs[idx] = tx;
+    addLog("تعديل فاتورة زبون", `تعديل حركة للزبون ${c.name}`);
+  } else {
+    c.txs.push(tx);
+    addLog("إضافة فاتورة زبون", `حركة جديدة للزبون ${c.name}`);
+  }
+  if(window.cloudSave) window.cloudSave.customerTx(c.id, tx);
+  save(); openCust(c.id); showToast("✅ تم الحفظ.");
+};
+window.editCustTx = function(cid, tid){
+  let c = window.appData.customers.find(x=>x.id===cid);
+  let t = c.txs.find(x=>x.id===tid);
+  if(!t) return;
+  document.getElementById('editCustTxId').value = t.id;
+  document.getElementById('custTxType').value = (t.total>0) ? 'bill' : 'payment';
+  toggleCustFormMode();
+  document.getElementById('billCustDesc').value = t.desc;
+  document.getElementById('billCustTotal').value = t.total;
+  document.getElementById('billCustPaid').value = t.paid;
+  document.getElementById('billCustMethod').value = t.method;
+  document.getElementById('custSubmitBtn').textContent = 'تحديث الحركة';
+  document.getElementById('cancelCustEditBtn').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.cancelCustEdit = function(){
+  document.getElementById('custActionForm').reset();
+  document.getElementById('editCustTxId').value = '';
+  document.getElementById('custTxType').value = 'bill';
+  toggleCustFormMode();
+  document.getElementById('custSubmitBtn').textContent = '💾 حفظ الحركة';
+  document.getElementById('cancelCustEditBtn').classList.add('hidden');
+};
+function renderCustTxs(c){
+  let html = '', bal = 0;
+  (c.txs||[]).forEach(t=>{
+    bal += (t.total - t.paid);
+    html += `<tr><td>${esc(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${t.total?money(t.total):'-'}</td><td class="num">${t.paid?money(t.paid):'-'}</td><td><span class="badge ${t.method==='كاش'?'b-cash':'b-card'}">${esc(t.method)}</span></td><td class="num" style="font-weight:800;color:${bal>0?'var(--bad)':'inherit'};">${money(bal)}</td><td style="white-space:nowrap;"><button class="btn btn-print" onclick='printSingleTx(${JSON.stringify(c.name)}, ${JSON.stringify(t.date)}, ${JSON.stringify(t.desc)}, ${t.total}, ${t.paid}, ${JSON.stringify(t.method)}, ${bal})'>🖨️</button> <button class="btn-edit" onclick="editCustTx('${c.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delCustTx('${c.id}','${t.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('customerTxTable').innerHTML = html || `<tr class="empty-row"><td colspan="7">لا توجد حركات مسجلة بعد</td></tr>`;
+}
+window.delCustTx = function(cid, tid){
+  askConfirm("حذف الحركة", "هل تريد حذف هذه الحركة نهائياً؟", ()=>{
+    let c = window.appData.customers.find(x=>x.id===cid);
+    c.txs = c.txs.filter(t=>t.id!==tid);
+    addLog("حذف فاتورة زبون", `حذف حركة من حساب ${c.name}`);
+    if(window.cloudSave) window.cloudSave.deleteCustomerTx(cid, tid);
+    save(); openCust(cid); showToast("تم الحذف.");
+  });
+};
+
+/* ---------- SUPPLIERS ---------- */
+window.addSupplier = function(e){
+  e.preventDefault();
+  let s = { id: uid(), name: document.getElementById('newSuppName').value.trim(), phone: document.getElementById('newSuppPhone').value.trim() || '-', txs: [] };
+  if(!s.name) return;
+  window.appData.suppliers.push(s);
+  addLog("إضافة مورد", `تم إضافة المورد: ${s.name}`);
+  if(window.cloudSave) window.cloudSave.supplierInfo(s);
+  save(); e.target.reset(); showToast("✅ تمت إضافة المورد.");
+};
+function renderSuppliers(){
+  let html = '';
+  window.appData.suppliers.forEach(s=>{
+    if(!s.txs) s.txs = [];
+    let tot = s.txs.reduce((a,b)=>a+(b.supplierTotalNet||0),0), paid = s.txs.reduce((a,b)=>a+(b.supplierPaidNet||0),0), rem = tot-paid;
+    html += `<tr><td class="clickable" onclick="openSupp('${s.id}')">${esc(s.name)}</td><td>${esc(s.phone)}</td><td class="num">${money(tot)}</td><td class="num">${money(paid)}</td><td class="num" style="color:${rem>0?'var(--bad)':'inherit'};font-weight:800;">${money(rem)}</td><td><button class="btn btn-danger" onclick="delSupp('${s.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('suppliersTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا يوجد موردين مسجلين بعد</td></tr>`;
+  document.getElementById('suppCountBadge').textContent = window.appData.suppliers.length;
+}
+window.delSupp = function(id){
+  let s = window.appData.suppliers.find(x=>x.id===id);
+  if(!s) return;
+  askConfirm("حذف المورد", `هل أنت متأكد من حذف المورد "${s.name}" وكل فواتيره؟`, ()=>{
+    addLog("حذف مورد", `حذف المورد: ${s.name}`);
+    window.appData.suppliers = window.appData.suppliers.filter(x=>x.id!==id);
+    if(window.cloudSave) window.cloudSave.deleteSupplierDoc(id);
+    save(); showToast("تم حذف المورد.");
+  });
+};
+window.openSupp = function(id){
+  let s = window.appData.suppliers.find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('activeSuppId').value = s.id;
+  document.getElementById('detSuppTitle').textContent = 'حساب المورد: ' + s.name;
+  document.getElementById('suppListView').classList.add('hidden');
+  document.getElementById('suppDetailView').classList.remove('hidden');
+  cancelSuppEdit();
+  renderSuppTxs(s);
+};
+window.toggleSuppFormMode = function(){
+  let type = document.getElementById('suppTxType').value;
+  document.getElementById('groupSuppTotal').style.display = type==='payment' ? 'none':'flex';
+  document.getElementById('groupSuppType').style.display = type==='payment' ? 'none':'flex';
+  if(type==='payment') document.getElementById('billSuppTotal').value = 0;
+};
+window.saveSupplierAction = function(e){
+  e.preventDefault();
+  let s = window.appData.suppliers.find(x=>x.id===document.getElementById('activeSuppId').value);
+  if(!s) return;
+  if(!s.txs) s.txs = [];
+  let editId = document.getElementById('editSuppTxId').value;
+  let type = document.getElementById('suppTxType').value;
+  let rawTotal = type==='payment' ? 0 : (parseFloat(document.getElementById('billSuppTotal').value)||0);
+  let billType = document.getElementById('billSuppType').value;
+  let grossPaid = parseFloat(document.getElementById('billSuppPaid').value)||0;
+  let method = document.getElementById('billSuppMethod').value;
+  let desc = document.getElementById('billSuppDesc').value.trim();
+  let payRate = getCardLossRate(method);
+  let cardLoss = grossPaid * payRate;
+  let supplierPaidNet = grossPaid * (1 - payRate);
+  let supplierTotalNet = rawTotal;
+  if(type !== 'payment'){
+    if(billType === 'كرت_10') supplierTotalNet = rawTotal * 0.90;
+    else if(billType === 'چكيم_5') supplierTotalNet = rawTotal * 0.95;
+  }
+  let txId = editId || uid();
+  let tx = { id: txId, date: getDate(), desc, supplierTotalNet, grossPaid, supplierPaidNet, method, cardLoss, createdAt: Date.now() };
+  if(editId){
+    let idx = s.txs.findIndex(t=>t.id===editId);
+    if(idx!==-1) tx.createdAt = s.txs[idx].createdAt;
+    if(idx!==-1) s.txs[idx] = tx;
+    addLog("تعديل فاتورة مورد", `تعديل حركة للمورد ${s.name}`);
+  } else {
+    s.txs.push(tx);
+    addLog("إضافة فاتورة مورد", `حركة جديدة للمورد ${s.name}`);
+  }
+  if(window.cloudSave) window.cloudSave.supplierTx(s.id, tx);
+  save(); openSupp(s.id); showToast("✅ تم الحفظ.");
+};
+window.editSuppTx = function(sid, tid){
+  let s = window.appData.suppliers.find(x=>x.id===sid);
+  let t = s.txs.find(x=>x.id===tid);
+  if(!t) return;
+  document.getElementById('editSuppTxId').value = t.id;
+  document.getElementById('suppTxType').value = (t.supplierTotalNet===0 && t.grossPaid>0) ? 'payment' : 'bill';
+  toggleSuppFormMode();
+  document.getElementById('billSuppDesc').value = t.desc;
+  document.getElementById('billSuppTotal').value = t.supplierTotalNet;
+  document.getElementById('billSuppPaid').value = t.grossPaid;
+  document.getElementById('billSuppMethod').value = t.method;
+  document.getElementById('suppSubmitBtn').textContent = 'تحديث الحركة';
+  document.getElementById('cancelSuppEditBtn').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.cancelSuppEdit = function(){
+  document.getElementById('suppActionForm').reset();
+  document.getElementById('editSuppTxId').value = '';
+  document.getElementById('suppTxType').value = 'bill';
+  toggleSuppFormMode();
+  document.getElementById('suppSubmitBtn').textContent = '💾 حفظ الحركة';
+  document.getElementById('cancelSuppEditBtn').classList.add('hidden');
+};
+function renderSuppTxs(s){
+  let html = '', bal = 0;
+  (s.txs||[]).forEach(t=>{
+    let totNet = t.supplierTotalNet||0, paidNet = t.supplierPaidNet||0;
+    bal += (totNet - paidNet);
+    html += `<tr><td>${esc(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${totNet?money(totNet):'-'}</td><td class="num">${paidNet?money(paidNet):'0'}</td><td><span class="badge ${t.method==='كاش'?'b-cash':'b-card'}">${esc(t.method)}</span></td><td class="num" style="color:var(--warn);">${t.cardLoss?money(t.cardLoss):'0'}</td><td class="num" style="font-weight:800;color:${bal>0?'var(--bad)':'inherit'};">${money(bal)}</td><td style="white-space:nowrap;"><button class="btn btn-print" onclick='printSingleTx(${JSON.stringify(s.name)}, ${JSON.stringify(t.date)}, ${JSON.stringify(t.desc)}, ${totNet}, ${paidNet}, ${JSON.stringify(t.method)}, ${bal})'>🖨️</button> <button class="btn-edit" onclick="editSuppTx('${s.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delSuppTx('${s.id}','${t.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('supplierTxTable').innerHTML = html || `<tr class="empty-row"><td colspan="8">لا توجد حركات مسجلة بعد</td></tr>`;
+}
+window.delSuppTx = function(sid, tid){
+  askConfirm("حذف الحركة", "هل تريد حذف هذه الحركة نهائياً؟", ()=>{
+    let s = window.appData.suppliers.find(x=>x.id===sid);
+    s.txs = s.txs.filter(t=>t.id!==tid);
+    addLog("حذف فاتورة مورد", `حذف حركة من ${s.name}`);
+    if(window.cloudSave) window.cloudSave.deleteSupplierTx(sid, tid);
+    save(); openSupp(sid); showToast("تم الحذف.");
+  });
+};
+
+/* ---------- ORDERS ---------- */
+function populateOrderCustomerSelect(){
+  let sel = document.getElementById('orderCustSelect');
+  let current = sel.value;
+  sel.innerHTML = '';
+  (window.appData.customers||[]).forEach(c=>{
+    let opt = document.createElement('option');
+    opt.value = c.id; opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+  if(current) sel.value = current;
+}
+window.saveOrder = function(e){
+  e.preventDefault();
+  let custId = document.getElementById('orderCustSelect').value;
+  let customer = window.appData.customers.find(c=>c.id===custId);
+  if(!customer){ showToast("⚠️ الرجاء اختيار زبون."); return; }
+  let editId = document.getElementById('editOrderId').value;
+  if(!window.appData.orders) window.appData.orders = [];
+  let order;
+  if(editId){
+    order = window.appData.orders.find(o=>o.id===editId);
+    if(order){
+      order.customerId = custId; order.customerName = customer.name;
+      order.type = document.getElementById('orderType').value.trim();
+      order.price = parseFloat(document.getElementById('orderPrice').value)||0;
+      order.dueDate = document.getElementById('orderDueDate').value;
+      order.fabric = document.getElementById('orderFabric').value.trim();
+      order.legs = document.getElementById('orderLegs').value.trim();
+      order.extra = document.getElementById('orderExtra').value.trim();
+    }
+    addLog("تعديل طلب", `تعديل طلب للزبون ${customer.name}`);
+  } else {
+    order = { id: uid(), date: getDate(), customerId: custId, customerName: customer.name,
+      type: document.getElementById('orderType').value.trim(),
+      price: parseFloat(document.getElementById('orderPrice').value)||0,
+      dueDate: document.getElementById('orderDueDate').value || getDate(),
+      fabric: document.getElementById('orderFabric').value.trim(),
+      legs: document.getElementById('orderLegs').value.trim(),
+      extra: document.getElementById('orderExtra').value.trim(),
+      status: 'غير مُسلَم', createdAt: Date.now() };
+    window.appData.orders.push(order);
+    addLog("إضافة طلب", `طلب جديد للزبون ${customer.name}`);
+  }
+  if(window.cloudSave) window.cloudSave.order(order);
+  save(); cancelOrderEdit(); showToast("✅ تم حفظ الطلب.");
+};
+window.editOrder = function(id){
+  let order = window.appData.orders.find(o=>o.id===id);
+  if(!order) return;
+  populateOrderCustomerSelect();
+  document.getElementById('editOrderId').value = order.id;
+  document.getElementById('orderCustSelect').value = order.customerId;
+  document.getElementById('orderType').value = order.type;
+  document.getElementById('orderPrice').value = order.price;
+  document.getElementById('orderDueDate').value = order.dueDate || getDate();
+  document.getElementById('orderFabric').value = order.fabric;
+  document.getElementById('orderLegs').value = order.legs;
+  document.getElementById('orderExtra').value = order.extra || '';
+  document.getElementById('orderFormTitle').textContent = 'تعديل الطلب';
+  document.getElementById('orderSubmitBtn').textContent = 'تحديث الطلب';
+  document.getElementById('cancelOrderEditBtn').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.cancelOrderEdit = function(){
+  document.getElementById('orderForm').reset();
+  document.getElementById('editOrderId').value = '';
+  document.getElementById('orderFormTitle').textContent = 'تسجيل طلب جديد';
+  document.getElementById('orderSubmitBtn').textContent = '➕ إضافة الطلب';
+  document.getElementById('cancelOrderEditBtn').classList.add('hidden');
+  populateOrderCustomerSelect();
+  document.getElementById('orderDueDate').value = getDate();
+};
+function renderOrders(){
+  let html = '';
+  (window.appData.orders||[]).forEach(o=>{
+    let done = o.status === 'مكتمل';
+    html += `<tr><td>${esc(o.date)}</td><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td class="num">${money(o.price)}</td><td>${esc(o.dueDate||'-')}</td><td>${esc(o.fabric)} / ${esc(o.legs)}</td><td><span class="badge ${done?'b-status-done':'b-status-pending'}">${esc(o.status)}</span></td><td style="white-space:nowrap;">${!done?`<button class="btn btn-sm btn-amber" onclick="openDeliverModal('${o.id}')">تسليم</button>`:''} <button class="btn-edit" onclick="editOrder('${o.id}')">تعديل</button> <button class="btn btn-danger" onclick="delOrder('${o.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('ordersTable').innerHTML = html || `<tr class="empty-row"><td colspan="8">لا توجد طلبات مسجلة بعد</td></tr>`;
+  document.getElementById('orderCountBadge').textContent = (window.appData.orders||[]).length;
+
+  let upcoming = (window.appData.orders||[]).filter(o=>o.status!=='مكتمل').sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||'')).slice(0,6);
+  document.getElementById('dUpcomingOrders').innerHTML = upcoming.length ? upcoming.map(o=>`<tr><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td>${esc(o.dueDate||'-')}</td><td><span class="badge b-status-pending">${esc(o.status)}</span></td></tr>`).join('') : `<tr class="empty-row"><td colspan="4">لا توجد طلبات معلقة 🎉</td></tr>`;
+}
+window.delOrder = function(id){
+  let o = window.appData.orders.find(x=>x.id===id);
+  if(!o) return;
+  askConfirm("حذف الطلب", `هل تريد حذف طلب "${o.type}" للزبون ${o.customerName}؟`, ()=>{
+    addLog("حذف طلب", `حذف طلب للزبون ${o.customerName}`);
+    window.appData.orders = window.appData.orders.filter(x=>x.id!==id);
+    if(window.cloudSave) window.cloudSave.deleteOrder(id);
+    save(); showToast("تم حذف الطلب.");
+  });
+};
+window.openDeliverModal = function(orderId){
+  let o = window.appData.orders.find(x=>x.id===orderId);
+  if(!o) return;
+  document.getElementById('deliverOrderId').value = o.id;
+  document.getElementById('deliverInfoText').innerHTML = `الزبون: <b>${esc(o.customerName)}</b><br>الطقم: <b>${esc(o.type)}</b><br>السعر: <b>${money(o.price)}</b>`;
+  document.getElementById('deliverPaidAmount').value = 0;
+  document.getElementById('deliverModal').classList.add('show');
+};
+window.confirmDelivery = function(e){
+  e.preventDefault();
+  let orderId = document.getElementById('deliverOrderId').value;
+  let paidAmount = parseFloat(document.getElementById('deliverPaidAmount').value)||0;
+  let method = document.getElementById('deliverMethod').value;
+  let order = window.appData.orders.find(x=>x.id===orderId);
+  if(!order) return;
+  let customer = window.appData.customers.find(c=>c.id===order.customerId);
+  if(!customer) return;
+  order.status = 'مكتمل';
+  if(!customer.txs) customer.txs = [];
+  let tx = { id: uid(), date: getDate(), desc: `طقم: ${order.type} | قماش: ${order.fabric} | أرجل: ${order.legs}`, total: order.price, paid: paidAmount, method, createdAt: Date.now() };
+  customer.txs.push(tx);
+  addLog("تسليم طلب", `تسليم طلب وإصدار فاتورة للزبون ${customer.name}`);
+  if(window.cloudSave){ window.cloudSave.order(order); window.cloudSave.customerTx(customer.id, tx); }
+  save(); closeModal('deliverModal'); showToast("✅ تم تسليم الطلب وإصدار الفاتورة.");
+};
+
+/* ---------- RESOURCES ---------- */
+window.switchResourceTab = function(cat, btn){
+  document.querySelectorAll('#resourceTabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('resourceCategory').value = cat;
+  renderResources();
+};
+window.saveResource = function(e){
+  e.preventDefault();
+  let cat = document.getElementById('resourceCategory').value;
+  let editId = document.getElementById('editResourceId').value;
+  let resObj = { id: editId || uid(), category: cat, name: document.getElementById('resName').value.trim(), dims: document.getElementById('resDims').value.trim()||'-', qty: parseFloat(document.getElementById('resQty').value)||0, note: document.getElementById('resNote').value.trim()||'-' };
+  if(!window.appData.resources) window.appData.resources = [];
+  if(editId){
+    let idx = window.appData.resources.findIndex(r=>r.id===editId);
+    if(idx!==-1) window.appData.resources[idx] = resObj;
+    addLog("تعديل مادة", `تعديل مادة مخزنية: ${resObj.name}`);
+  } else {
+    window.appData.resources.push(resObj);
+    addLog("إضافة مادة", `إضافة مادة مخزنية: ${resObj.name}`);
+  }
+  if(window.cloudSave) window.cloudSave.resource(resObj);
+  document.getElementById('editResourceId').value = '';
+  document.getElementById('resSubmitBtn').textContent = '➕ إضافة للمخزون';
+  e.target.reset();
+  document.getElementById('resourceCategory').value = cat;
+  save(); showToast("✅ تم الحفظ.");
+};
+function renderResources(){
+  let cat = document.getElementById('resourceCategory').value;
+  const catNames = {wood:'🪵 خشب', foam:'🧽 سفنج', fabric:'🧵 قماش', hardware:'🔩 نواعم'};
+  let html = '';
+  (window.appData.resources||[]).filter(r=>r.category===cat).forEach(r=>{
+    html += `<tr><td><span class="badge b-card">${catNames[r.category]||esc(r.category)}</span></td><td>${esc(r.name)}</td><td>${esc(r.dims)}</td><td class="num">${r.qty}</td><td>${esc(r.note)}</td><td><button class="btn-edit" onclick="editResource('${r.id}')">تعديل</button> <button class="btn btn-danger" onclick="delResource('${r.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('resourcesTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد مواد مسجلة بهذا القسم</td></tr>`;
+}
+window.editResource = function(id){
+  let r = window.appData.resources.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('editResourceId').value = r.id;
+  document.getElementById('resourceCategory').value = r.category;
+  document.querySelectorAll('#resourceTabs .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.cat===r.category));
+  document.getElementById('resName').value = r.name;
+  document.getElementById('resDims').value = r.dims;
+  document.getElementById('resQty').value = r.qty;
+  document.getElementById('resNote').value = r.note;
+  document.getElementById('resSubmitBtn').textContent = 'تحديث المادة';
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.delResource = function(id){
+  askConfirm("حذف المادة", "هل تريد حذف هذه المادة من المخزون؟", ()=>{
+    window.appData.resources = window.appData.resources.filter(x=>x.id!==id);
+    if(window.cloudSave) window.cloudSave.deleteResource(id);
+    save(); showToast("تم الحذف.");
+  });
+};
+
+/* ---------- TOOLS ---------- */
+window.addTool = function(e){
+  e.preventDefault();
+  let editId = document.getElementById('editToolId').value;
+  let tool = { id: editId || uid(), date: getDate(), name: document.getElementById('toolName').value.trim(), price: parseFloat(document.getElementById('toolPrice').value)||0, note: document.getElementById('toolNote').value.trim()||'-' };
+  if(!window.appData.tools) window.appData.tools = [];
+  if(editId){
+    let idx = window.appData.tools.findIndex(t=>t.id===editId);
+    if(idx!==-1){ tool.date = window.appData.tools[idx].date; window.appData.tools[idx] = tool; }
+    addLog("تعديل عدة", `تعديل عدة: ${tool.name}`);
+  } else {
+    window.appData.tools.push(tool);
+    addLog("شراء عدة", `شراء عدة جديدة: ${tool.name}`);
+  }
+  if(window.cloudSave) window.cloudSave.tool(tool);
+  document.getElementById('editToolId').value = '';
+  e.target.reset();
+  document.getElementById('toolSubmitBtn').textContent = '➕ تسجيل العدة';
+  save(); showToast("✅ تم الحفظ.");
+};
+function renderTools(){
+  let html='', total=0;
+  (window.appData.tools||[]).forEach(t=>{
+    total += t.price;
+    html += `<tr><td>${esc(t.date)}</td><td>${esc(t.name)}</td><td class="num">${money(t.price)}</td><td>${esc(t.note)}</td><td><button class="btn-edit" onclick="editTool('${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delTool('${t.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('toolsTable').innerHTML = html || `<tr class="empty-row"><td colspan="5">لا توجد عدة مسجلة بعد</td></tr>`;
+  document.getElementById('toolsSumBadge').textContent = money(total);
+}
+window.editTool = function(id){
+  let t = window.appData.tools.find(x=>x.id===id);
+  if(!t) return;
+  document.getElementById('editToolId').value = t.id;
+  document.getElementById('toolName').value = t.name;
+  document.getElementById('toolPrice').value = t.price;
+  document.getElementById('toolNote').value = t.note;
+  document.getElementById('toolSubmitBtn').textContent = 'تحديث العدة';
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.delTool = function(id){
+  askConfirm("حذف العدة", "هل تريد حذف هذه العدة؟", ()=>{
+    window.appData.tools = window.appData.tools.filter(x=>x.id!==id);
+    if(window.cloudSave) window.cloudSave.deleteTool(id);
+    save(); showToast("تم الحذف.");
+  });
+};
+
+/* ---------- EMPLOYEES ---------- */
+window.addEmployee = function(e){
+  e.preventDefault();
+  let em = { id: uid(), name: document.getElementById('newEmpName').value.trim(), role: document.getElementById('newEmpRole').value.trim()||'-', phone: document.getElementById('newEmpPhone').value.trim()||'-', txs: [] };
+  if(!em.name) return;
+  window.appData.employees.push(em);
+  addLog("إضافة موظف", `تم إضافة الموظف: ${em.name}`);
+  if(window.cloudSave) window.cloudSave.employeeInfo(em);
+  save(); e.target.reset(); showToast("✅ تمت إضافة الموظف.");
+};
+function renderEmployees(){
+  let html='';
+  window.appData.employees.forEach(em=>{
+    if(!em.txs) em.txs = [];
+    let total = em.txs.reduce((a,b)=>a+(b.amount||0),0);
+    html += `<tr><td class="clickable" onclick="openEmp('${em.id}')">${esc(em.name)}</td><td>${esc(em.role)}</td><td>${esc(em.phone)}</td><td class="num">${money(total)}</td><td><button class="btn btn-danger" onclick="delEmp('${em.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('employeesTable').innerHTML = html || `<tr class="empty-row"><td colspan="5">لا يوجد موظفين مسجلين بعد</td></tr>`;
+  document.getElementById('empCountBadge').textContent = window.appData.employees.length;
+}
+window.delEmp = function(id){
+  let em = window.appData.employees.find(x=>x.id===id);
+  if(!em) return;
+  askConfirm("حذف الموظف", `هل تريد حذف الموظف "${em.name}" وكل سجل أجوره؟`, ()=>{
+    addLog("حذف موظف", `حذف الموظف: ${em.name}`);
+    window.appData.employees = window.appData.employees.filter(x=>x.id!==id);
+    if(window.cloudSave) window.cloudSave.deleteEmployeeDoc(id);
+    save(); showToast("تم حذف الموظف.");
+  });
+};
+window.openEmp = function(id){
+  let em = window.appData.employees.find(x=>x.id===id);
+  if(!em) return;
+  document.getElementById('activeEmpId').value = em.id;
+  document.getElementById('detEmpTitle').textContent = 'حساب الموظف: ' + em.name;
+  document.getElementById('empListView').classList.add('hidden');
+  document.getElementById('empDetailView').classList.remove('hidden');
+  cancelEmpEdit();
+  renderEmpTxs(em);
+};
+window.saveEmployeeAction = function(e){
+  e.preventDefault();
+  let em = window.appData.employees.find(x=>x.id===document.getElementById('activeEmpId').value);
+  if(!em) return;
+  if(!em.txs) em.txs = [];
+  let editId = document.getElementById('editEmpTxId').value;
+  let amount = parseFloat(document.getElementById('empTxAmount').value)||0;
+  let method = document.getElementById('empTxMethod').value;
+  let desc = document.getElementById('empTxDesc').value.trim();
+  let txId = editId || uid();
+  let tx = { id: txId, date: getDate(), desc, amount, method, cardLoss: amount*getCardLossRate(method), createdAt: Date.now() };
+  if(editId){
+    let idx = em.txs.findIndex(t=>t.id===editId);
+    if(idx!==-1){ tx.createdAt = em.txs[idx].createdAt; em.txs[idx] = tx; }
+    addLog("تعديل أجر", `تعديل أجر للموظف ${em.name}`);
+  } else {
+    em.txs.push(tx);
+    addLog("تسجيل أجر", `أجر جديد للموظف ${em.name}`);
+  }
+  if(window.cloudSave) window.cloudSave.employeeTx(em.id, tx);
+  save(); openEmp(em.id); showToast("✅ تم الحفظ.");
+};
+window.editEmpTx = function(eid, tid){
+  let em = window.appData.employees.find(x=>x.id===eid);
+  let t = em.txs.find(x=>x.id===tid);
+  if(!t) return;
+  document.getElementById('editEmpTxId').value = t.id;
+  document.getElementById('empTxDesc').value = t.desc;
+  document.getElementById('empTxAmount').value = t.amount;
+  document.getElementById('empTxMethod').value = t.method;
+  document.getElementById('empSubmitBtn').textContent = 'تحديث الأجر';
+  document.getElementById('cancelEmpEditBtn').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.cancelEmpEdit = function(){
+  document.getElementById('empActionForm').reset();
+  document.getElementById('editEmpTxId').value = '';
+  document.getElementById('empSubmitBtn').textContent = '💾 تسجيل الأجر';
+  document.getElementById('cancelEmpEditBtn').classList.add('hidden');
+};
+function renderEmpTxs(em){
+  let html='';
+  (em.txs||[]).forEach(t=>{
+    html += `<tr><td>${esc(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${money(t.amount)}</td><td><span class="badge ${t.method==='كاش'?'b-cash':'b-card'}">${esc(t.method)}</span></td><td class="num" style="color:var(--warn);">${t.cardLoss?money(t.cardLoss):'0'}</td><td><button class="btn-edit" onclick="editEmpTx('${em.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delEmpTx('${em.id}','${t.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('employeeTxTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد أجور مسجلة بعد</td></tr>`;
+}
+window.delEmpTx = function(eid, tid){
+  askConfirm("حذف الحركة", "هل تريد حذف هذا السجل؟", ()=>{
+    let em = window.appData.employees.find(x=>x.id===eid);
+    em.txs = em.txs.filter(t=>t.id!==tid);
+    addLog("حذف أجر", `حذف حركة أجر من ${em.name}`);
+    if(window.cloudSave) window.cloudSave.deleteEmployeeTx(eid, tid);
+    save(); openEmp(eid); showToast("تم الحذف.");
+  });
+};
+
+/* ---------- EXPENSES ---------- */
+window.addExpense = function(e){
+  e.preventDefault();
+  let amount = parseFloat(document.getElementById('expAmount').value)||0;
+  let method = document.getElementById('expMethod').value;
+  let title = document.getElementById('expTitle').value.trim();
+  let exp = { id: uid(), date: getDate(), title, amount, method, cardLoss: amount*getCardLossRate(method) };
+  window.appData.expenses = window.appData.expenses || [];
+  window.appData.expenses.push(exp);
+  addLog("مصروف", `تسجيل مصروف: ${title}`);
+  if(window.cloudSave) window.cloudSave.expense(exp);
+  save(); e.target.reset(); showToast("✅ تم تسجيل المصروف.");
+};
+function renderExpenses(){
+  let html='', total=0;
+  (window.appData.expenses||[]).forEach(ex=>{
+    total += ex.amount;
+    html += `<tr><td>${esc(ex.date)}</td><td>${esc(ex.title)}</td><td class="num">${money(ex.amount)}</td><td><span class="badge ${ex.method==='كاش'?'b-cash':'b-card'}">${esc(ex.method)}</span></td><td class="num" style="color:var(--warn);">${ex.cardLoss?money(ex.cardLoss):'0'}</td><td><button class="btn btn-danger" onclick="delExp('${ex.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('expensesTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد مصاريف مسجلة بعد</td></tr>`;
+  document.getElementById('expSumBadge').textContent = money(total);
+}
+window.delExp = function(id){
+  askConfirm("حذف المصروف", "هل تريد حذف هذا المصروف؟", ()=>{
+    window.appData.expenses = window.appData.expenses.filter(e=>e.id!==id);
+    if(window.cloudSave) window.cloudSave.deleteExpense(id);
+    save(); showToast("تم الحذف.");
+  });
+};
+
+/* ---------- GLOBAL SEARCH ---------- */
+window.performGlobalSearch = function(){
+  let q = document.getElementById('globalSearchInput').value.trim().toLowerCase();
+  let box = document.getElementById('searchResultsContainer');
+  if(!q){ box.innerHTML = '<p style="color:var(--ink-soft);text-align:center;padding:20px;">اكتب كلمة للبحث...</p>'; return; }
+  let html = '';
+
+  let mc = (window.appData.customers||[]).filter(c=>c.name.toLowerCase().includes(q) || (c.phone||'').includes(q));
+  if(mc.length){
+    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">👥 الزبائن</h3><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجراء</th></tr></thead><tbody>`;
+    mc.forEach(c=>html+=`<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td><button class="btn btn-sm btn-amber" onclick="goTo('s-customers'); openCust('${c.id}');">فتح الحساب</button></td></tr>`);
+    html += `</tbody></table>`;
+  }
+  let ms = (window.appData.suppliers||[]).filter(s=>s.name.toLowerCase().includes(q) || (s.phone||'').includes(q));
+  if(ms.length){
+    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">📦 الموردين</h3><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجراء</th></tr></thead><tbody>`;
+    ms.forEach(s=>html+=`<tr><td>${esc(s.name)}</td><td>${esc(s.phone)}</td><td><button class="btn btn-sm btn-amber" onclick="goTo('s-suppliers'); openSupp('${s.id}');">فتح الحساب</button></td></tr>`);
+    html += `</tbody></table>`;
+  }
+  let me = (window.appData.employees||[]).filter(em=>em.name.toLowerCase().includes(q) || (em.role||'').toLowerCase().includes(q));
+  if(me.length){
+    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">👷 الموظفين</h3><table><thead><tr><th>الاسم</th><th>الدور</th><th>إجراء</th></tr></thead><tbody>`;
+    me.forEach(em=>html+=`<tr><td>${esc(em.name)}</td><td>${esc(em.role)}</td><td><button class="btn btn-sm btn-amber" onclick="goTo('s-employees'); openEmp('${em.id}');">فتح الحساب</button></td></tr>`);
+    html += `</tbody></table>`;
+  }
+  let mo = (window.appData.orders||[]).filter(o=>o.customerName.toLowerCase().includes(q) || o.type.toLowerCase().includes(q) || (o.fabric||'').toLowerCase().includes(q) || (o.legs||'').toLowerCase().includes(q));
+  if(mo.length){
+    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">📋 الطلبات</h3><table><thead><tr><th>التاريخ</th><th>الزبون</th><th>الطقم</th><th>القماش</th><th>الحالة</th></tr></thead><tbody>`;
+    mo.forEach(o=>html+=`<tr><td>${esc(o.date)}</td><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td>${esc(o.fabric)}</td><td>${esc(o.status)}</td></tr>`);
+    html += `</tbody></table>`;
+  }
+  box.innerHTML = html || '<p style="color:var(--bad);text-align:center;padding:20px;">لا توجد نتائج مطابقة.</p>';
+};
+
+/* ---------- AUDIT LOG ---------- */
+function renderLogs(){
+  let html = (window.appData.logs||[]).map(l=>`<tr><td class="num">${esc(l.time)}</td><td><span class="badge" style="background:var(--walnut);color:#fff;">${esc(l.type)}</span></td><td>${esc(l.details)}</td></tr>`).join('');
+  document.getElementById('auditLogTable').innerHTML = html || `<tr class="empty-row"><td colspan="3">لا توجد عمليات مسجلة بعد</td></tr>`;
+}
+
+/* ---------- PRINT / PDF ---------- */
+let lastPrintedInvoiceData = {};
+window.printSingleTx = function(name, date, desc, total, paid, method, rem){
+  let s = window.appData.invoiceSettings || { title:"ورشة الأثاث والتنجيد", phone:"+905000000000", address:"تركيا" };
+  document.getElementById('invHeaderTitle').textContent = s.title;
+  document.getElementById('invHeaderAddress').textContent = s.address;
+  document.getElementById('invHeaderPhone').textContent = 'هاتف: ' + s.phone;
+  document.getElementById('pDate').textContent = date;
+  document.getElementById('pEntityName').textContent = name;
+  document.getElementById('pDesc').textContent = desc;
+  document.getElementById('pTotal').textContent = money(total);
+  document.getElementById('pPaid').textContent = money(paid);
+  document.getElementById('pMethod').textContent = method;
+  document.getElementById('pRem').textContent = money(rem);
+  lastPrintedInvoiceData = { name, date, desc, total, paid, method, rem, phone: s.phone, title: s.title };
+  let qrBox = document.getElementById('qrcode');
+  qrBox.innerHTML = '';
+  try{ new QRCode(qrBox, { text: "tel:" + s.phone, width: 70, height: 70 }); }catch(e){}
+  document.getElementById('printModal').classList.add('show');
+};
+window.shareInvoiceWhatsAppPdf = async function(){
+  let d = lastPrintedInvoiceData;
+  if(!d.name){ showToast("لا توجد بيانات فاتورة."); return; }
+  let element = document.getElementById('printableInvoiceArea');
+  let opt = { margin:10, filename:`Invoice_${d.name}_${d.date}.pdf`, image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2,useCORS:true}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'} };
+  try{
+    let blob = await html2pdf().from(element).set(opt).outputPdf('blob');
+    let file = new File([blob], `Invoice_${d.name}.pdf`, {type:'application/pdf'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:'فاتورة الورشة', text:`مرحباً ${d.name}، تفضل فاتورتك.` });
+    } else {
+      let url = URL.createObjectURL(blob);
+      let a = document.createElement('a'); a.href = url; a.download = `Invoice_${d.name}_${d.date}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      showToast("تم تحميل ملف PDF لإرفاقه يدوياً.");
+    }
+  }catch(err){ console.error(err); showToast("حدث خطأ أثناء توليد الملف."); }
+};
+
+/* ---------- SAVE + DASHBOARD ---------- */
+window.save = function(){ refreshUI(); };
+
+window.refreshUI = function(){
+  let tSales=0, tCustDebt=0;
+  (window.appData.customers||[]).forEach(c=>{
+    let cTot=0, cPaid=0;
+    (c.txs||[]).forEach(t=>{ tSales += (t.total||0); cTot += (t.total||0); cPaid += (t.paid||0); });
+    tCustDebt += (cTot-cPaid);
+  });
+
+  let tPurchases=0, tSuppDebt=0;
+  (window.appData.suppliers||[]).forEach(s=>{
+    let sTot=0, sPaidNet=0;
+    (s.txs||[]).forEach(t=>{ let tn=t.supplierTotalNet||0, pn=t.supplierPaidNet||0; tPurchases+=tn; sTot+=tn; sPaidNet+=pn; });
+    tSuppDebt += (sTot-sPaidNet);
+  });
+
+  let totalWages = (window.appData.employees||[]).reduce((sum,em)=>sum + (em.txs||[]).reduce((a,b)=>a+(b.amount||0),0), 0);
+  let totalExp = (window.appData.expenses||[]).reduce((sum,e)=>sum+(e.amount||0),0);
+
+  let cLoss = (window.appData.suppliers||[]).reduce((sum,s)=>sum+(s.txs||[]).reduce((a,b)=>a+(b.cardLoss||0),0),0)
+            + (window.appData.employees||[]).reduce((sum,em)=>sum+(em.txs||[]).reduce((a,b)=>a+(b.cardLoss||0),0),0)
+            + (window.appData.expenses||[]).reduce((sum,e)=>sum+(e.cardLoss||0),0);
+
+  let totalBudget = tSales - (tPurchases + cLoss + totalWages + totalExp);
+
+  document.getElementById('dSales').textContent = money(tSales);
+  document.getElementById('dPurchases').textContent = money(tPurchases);
+  document.getElementById('dCustDebt').textContent = money(tCustDebt);
+  document.getElementById('dSuppDebt').textContent = money(tSuppDebt);
+  document.getElementById('dCardLoss').textContent = money(cLoss);
+  document.getElementById('dBudget').textContent = money(totalBudget);
+
+  renderCustomers();
+  renderSuppliers();
+  renderOrders();
+  renderEmployees();
+  renderExpenses();
+  renderTools();
+  renderLogs();
+  loadInvoiceSettingsToForm();
+};
+</script>
+</body>
+</html>
