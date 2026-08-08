@@ -28,7 +28,15 @@
   --radius:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
+html,body{overflow-x:hidden;max-width:100%;}
 body{font-family:'Tajawal',sans-serif;background:var(--cream);color:var(--ink);font-size:14px;line-height:1.6;}
+.tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:6px;}
+.tbl-wrap table{min-width:560px;}
+.loading-row td{text-align:center;color:var(--ink-soft);padding:24px;}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-left:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.mismatch-box{background:var(--warn-bg);border:1px solid #e0c48a;border-radius:8px;padding:14px;margin-top:12px;font-size:13px;}
+.match-box{background:var(--ok-bg);border:1px solid #b9d6c2;border-radius:8px;padding:14px;margin-top:12px;font-size:13px;}
 .num{font-family:'JetBrains Mono',monospace;font-feature-settings:"tnum";}
 ::selection{background:var(--amber-light);color:var(--walnut);}
 
@@ -63,7 +71,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--cream);color:var(--ink);f
 .logout-btn{width:100%;background:rgba(161,61,61,.18);color:#e8a8a8;border:1px solid rgba(161,61,61,.3);padding:8px;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px;}
 .logout-btn:hover{background:rgba(161,61,61,.3);}
 
-.main{margin-right:230px;flex:1;padding:22px 28px 60px;max-width:1200px;}
+.main{margin-right:230px;flex:1;padding:22px 28px 60px;max-width:1200px;overflow-x:hidden;min-width:0;}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:10px;flex-wrap:wrap;}
 .topbar h1{font-size:19px;font-weight:900;color:var(--walnut);}
 .topbar .menu-toggle{display:none;background:var(--walnut);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:16px;}
@@ -248,7 +256,7 @@ tbody tr:hover{background:#fbf7f0;}
       </div>
       <div class="panel">
         <h2>طلبات مستحقة التسليم قريباً</h2>
-        <table><thead><tr><th>الزبون</th><th>الطقم</th><th>تاريخ التسليم</th><th>الحالة</th></tr></thead><tbody id="dUpcomingOrders"></tbody></table>
+        <div class="tbl-wrap"><table><thead><tr><th>الزبون</th><th>الطقم</th><th>تاريخ التسليم</th><th>الحالة</th></tr></thead><tbody id="dUpcomingOrders"></tbody></table></div>
       </div>
     </section>
 
@@ -265,7 +273,7 @@ tbody tr:hover{background:#fbf7f0;}
         </div>
         <div class="panel">
           <h2>قائمة الزبائن <span class="badge-total" id="custCountBadge">0</span></h2>
-          <table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجمالي الفواتير</th><th>المدفوع</th><th>الباقي عليه</th><th>إجراء</th></tr></thead><tbody id="customersTable"></tbody></table>
+          <div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجمالي الفواتير</th><th>المدفوع</th><th>الباقي عليه</th><th>إجراء</th></tr></thead><tbody id="customersTable"></tbody></table></div>
         </div>
       </div>
       <div id="custDetailView" class="hidden">
@@ -300,7 +308,7 @@ tbody tr:hover{background:#fbf7f0;}
         </div>
         <div class="panel">
           <h2>سجل حركات الزبون</h2>
-          <table><thead><tr><th>التاريخ</th><th>البيان</th><th>البضاعة</th><th>المدفوع</th><th>الطريقة</th><th>الباقي</th><th>إجراء</th></tr></thead><tbody id="customerTxTable"></tbody></table>
+          <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>البيان</th><th>البضاعة</th><th>المدفوع</th><th>الطريقة</th><th>الباقي</th><th>إجراء</th></tr></thead><tbody id="customerTxTable"></tbody></table></div>
         </div>
       </div>
     </section>
@@ -318,7 +326,7 @@ tbody tr:hover{background:#fbf7f0;}
         </div>
         <div class="panel">
           <h2>قائمة الموردين <span class="badge-total" id="suppCountBadge">0</span></h2>
-          <table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجمالي المشتريات</th><th>المسدد</th><th>الباقي له</th><th>إجراء</th></tr></thead><tbody id="suppliersTable"></tbody></table>
+          <div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجمالي المشتريات</th><th>المسدد</th><th>الباقي له</th><th>إجراء</th></tr></thead><tbody id="suppliersTable"></tbody></table></div>
         </div>
       </div>
       <div id="suppDetailView" class="hidden">
@@ -360,7 +368,7 @@ tbody tr:hover{background:#fbf7f0;}
         </div>
         <div class="panel">
           <h2>سجل حركات المورد</h2>
-          <table><thead><tr><th>التاريخ</th><th>البيان</th><th>الفاتورة</th><th>المسدد</th><th>الطريقة</th><th>خسارة الكرت</th><th>الباقي</th><th>إجراء</th></tr></thead><tbody id="supplierTxTable"></tbody></table>
+          <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>البيان</th><th>الفاتورة</th><th>المسدد</th><th>الطريقة</th><th>خسارة الكرت</th><th>الباقي</th><th>إجراء</th></tr></thead><tbody id="supplierTxTable"></tbody></table></div>
         </div>
       </div>
     </section>
@@ -386,7 +394,7 @@ tbody tr:hover{background:#fbf7f0;}
       </div>
       <div class="panel">
         <h2>قائمة الطلبات <span class="badge-total" id="orderCountBadge">0</span></h2>
-        <table><thead><tr><th>التاريخ</th><th>الزبون</th><th>الطقم</th><th>السعر</th><th>التسليم</th><th>القماش/الأرجل</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="ordersTable"></tbody></table>
+        <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الزبون</th><th>الطقم</th><th>السعر</th><th>التسليم</th><th>القماش/الأرجل</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="ordersTable"></tbody></table></div>
       </div>
     </section>
 
@@ -409,7 +417,7 @@ tbody tr:hover{background:#fbf7f0;}
           <div class="field"><label>ملاحظات</label><input id="resNote" placeholder="ملاحظات..."></div>
           <div class="field-actions"><button class="btn btn-primary" id="resSubmitBtn">➕ إضافة للمخزون</button></div>
         </form>
-        <table><thead><tr><th>القسم</th><th>الصنف</th><th>القياسات</th><th>الكمية</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="resourcesTable"></tbody></table>
+        <div class="tbl-wrap"><table><thead><tr><th>القسم</th><th>الصنف</th><th>القياسات</th><th>الكمية</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="resourcesTable"></tbody></table></div>
       </div>
     </section>
 
@@ -425,7 +433,7 @@ tbody tr:hover{background:#fbf7f0;}
           <div class="field"><label>ملاحظات</label><input id="toolNote" placeholder="ملاحظات..."></div>
           <div class="field-actions"><button class="btn btn-primary" id="toolSubmitBtn">➕ تسجيل العدة</button></div>
         </form>
-        <table><thead><tr><th>التاريخ</th><th>الاسم</th><th>التكلفة</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="toolsTable"></tbody></table>
+        <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الاسم</th><th>التكلفة</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="toolsTable"></tbody></table></div>
       </div>
     </section>
 
@@ -443,7 +451,7 @@ tbody tr:hover{background:#fbf7f0;}
         </div>
         <div class="panel">
           <h2>قائمة الموظفين <span class="badge-total" id="empCountBadge">0</span></h2>
-          <table><thead><tr><th>الاسم</th><th>الدور</th><th>الهاتف</th><th>إجمالي الأجور المدفوعة</th><th>إجراء</th></tr></thead><tbody id="employeesTable"></tbody></table>
+          <div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>الدور</th><th>الهاتف</th><th>إجمالي الأجور المدفوعة</th><th>إجراء</th></tr></thead><tbody id="employeesTable"></tbody></table></div>
         </div>
       </div>
       <div id="empDetailView" class="hidden">
@@ -471,7 +479,7 @@ tbody tr:hover{background:#fbf7f0;}
         </div>
         <div class="panel">
           <h2>سجل أجور الموظف</h2>
-          <table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>الطريقة</th><th>خسارة الكرت</th><th>إجراء</th></tr></thead><tbody id="employeeTxTable"></tbody></table>
+          <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>الطريقة</th><th>خسارة الكرت</th><th>إجراء</th></tr></thead><tbody id="employeeTxTable"></tbody></table></div>
         </div>
       </div>
     </section>
@@ -493,7 +501,7 @@ tbody tr:hover{background:#fbf7f0;}
           </div>
           <div class="field-actions"><button class="btn btn-primary">➕ تسجيل المصروف</button></div>
         </form>
-        <table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>الطريقة</th><th>خسارة الكرت</th><th>إجراء</th></tr></thead><tbody id="expensesTable"></tbody></table>
+        <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>الطريقة</th><th>خسارة الكرت</th><th>إجراء</th></tr></thead><tbody id="expensesTable"></tbody></table></div>
       </div>
     </section>
 
@@ -513,7 +521,7 @@ tbody tr:hover{background:#fbf7f0;}
     <section class="section" id="s-log">
       <div class="panel">
         <h2>سجل العمليات (Audit Log)</h2>
-        <table><thead><tr><th>الوقت</th><th>نوع العملية</th><th>التفاصيل</th></tr></thead><tbody id="auditLogTable"></tbody></table>
+        <div class="tbl-wrap"><table><thead><tr><th>الوقت</th><th>نوع العملية</th><th>التفاصيل</th></tr></thead><tbody id="auditLogTable"></tbody></table></div>
       </div>
     </section>
 
@@ -527,6 +535,15 @@ tbody tr:hover{background:#fbf7f0;}
           <div class="field" style="grid-column:1/-1;"><label>العنوان</label><input id="setInvAddress" required></div>
           <div class="field-actions"><button class="btn btn-primary">💾 حفظ الإعدادات</button></div>
         </form>
+      </div>
+      <div class="panel">
+        <h2>دقة الحسابات <span class="badge-total">مراجعة</span></h2>
+        <p style="font-size:12px;color:var(--ink-soft);margin-bottom:12px;">
+          الأرقام بالداشبورد تُحسب فورياً من ملخص جاهز بدل تحميل كل فاتورة عند فتح البرنامج، فيصير التطبيق سريع دائماً مهما تراكمت السنين. 
+          استخدم هذا الزر من فترة لفترة للتأكد إن الملخص لسا مطابق تماماً لكل الفواتير الفعلية.
+        </p>
+        <button class="btn btn-ghost" onclick="runStatsCheck(false)">🔍 مراجعة دقة الحسابات الآن</button>
+        <div id="statsCheckResult"></div>
       </div>
       <div class="panel">
         <h2>النسخ الاحتياطي</h2>
@@ -615,7 +632,7 @@ tbody tr:hover{background:#fbf7f0;}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAil3oUaJQMW8ErUVFdLaugx_gbXVlPM-E",
@@ -631,8 +648,12 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const dbCloud = getFirestore(app);
 let currentUser = null;
+const ZERO_STATS = { totalSales:0, totalCustPaid:0, totalPurchases:0, totalSuppPaidNet:0, totalWages:0, totalExpenses:0, totalCardLoss:0 };
+const DEFAULT_SETTINGS = { title: "ورشة الأثاث والتنجيد", phone: "+905000000000", address: "تركيا" };
 
-window.appData = { customers: [], suppliers: [], employees: [], orders: [], resources: [], tools: [], expenses: [], logs: [], invoiceSettings: { title: "ورشة الأثاث والتنجيد", phone: "+905000000000", address: "تركيا" } };
+window.appData = { customers: [], suppliers: [], employees: [], orders: [], resources: [], tools: [], expenses: [], logs: [], invoiceSettings: {...DEFAULT_SETTINGS}, stats: {...ZERO_STATS} };
+
+function rootRef(){ return doc(dbCloud, "workshops", currentUser.uid); }
 
 setPersistence(auth, browserLocalPersistence).catch(e => console.error(e));
 
@@ -642,12 +663,18 @@ window.loginWithGoogle = function () {
 };
 window.logout = function () { signOut(auth).then(() => location.reload()); };
 
+/* ---------- fast startup load: aggregates only, NO transaction subcollections ---------- */
 async function loadCloudData() {
   if (!currentUser) return;
   try {
-    const userDocRef = doc(dbCloud, "workshops", currentUser.uid);
-    const userSnap = await getDoc(userDocRef);
-    window.appData.invoiceSettings = (userSnap.exists() && userSnap.data().invoiceSettings) || { title: "ورشة الأثاث والتنجيد", phone: "+905000000000", address: "تركيا" };
+    let userSnap = await getDoc(rootRef());
+    if (!userSnap.exists()) {
+      await setDoc(rootRef(), { invoiceSettings: DEFAULT_SETTINGS, stats: ZERO_STATS });
+      userSnap = await getDoc(rootRef());
+    }
+    const rootData = userSnap.data() || {};
+    window.appData.invoiceSettings = rootData.invoiceSettings || {...DEFAULT_SETTINGS};
+    window.appData.stats = { ...ZERO_STATS, ...(rootData.stats || {}) };
 
     window.appData.customers = [];
     window.appData.suppliers = [];
@@ -658,40 +685,20 @@ async function loadCloudData() {
     window.appData.expenses = [];
     window.appData.logs = [];
 
-    const custSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers"));
-    for (let d of custSnap.docs) {
-      let c = d.data(); c.txs = [];
-      const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", d.id, "transactions"));
-      txSnap.forEach(t => c.txs.push(t.data()));
-      c.txs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-      window.appData.customers.push(c);
-    }
-
-    const suppSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers"));
-    for (let d of suppSnap.docs) {
-      let s = d.data(); s.txs = [];
-      const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers", d.id, "transactions"));
-      txSnap.forEach(t => s.txs.push(t.data()));
-      s.txs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-      window.appData.suppliers.push(s);
-    }
-
-    const empSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees"));
-    for (let d of empSnap.docs) {
-      let em = d.data(); em.txs = [];
-      const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees", d.id, "transactions"));
-      txSnap.forEach(t => em.txs.push(t.data()));
-      em.txs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-      window.appData.employees.push(em);
-    }
-
-    const [orderSnap, resSnap, toolSnap, expSnap, logSnap] = await Promise.all([
+    const [custSnap, suppSnap, empSnap, orderSnap, resSnap, toolSnap, expSnap, logSnap] = await Promise.all([
+      getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers")),
+      getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers")),
+      getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees")),
       getDocs(collection(dbCloud, "workshops", currentUser.uid, "orders")),
       getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources")),
       getDocs(collection(dbCloud, "workshops", currentUser.uid, "tools")),
       getDocs(collection(dbCloud, "workshops", currentUser.uid, "expenses")),
       getDocs(collection(dbCloud, "workshops", currentUser.uid, "logs"))
     ]);
+    // customers/suppliers/employees: load lightweight doc only. Transactions load lazily when the account is opened.
+    custSnap.forEach(d => { let c = d.data(); c.totalBill = c.totalBill||0; c.totalPaid = c.totalPaid||0; c.txs = []; c._loaded = false; window.appData.customers.push(c); });
+    suppSnap.forEach(d => { let s = d.data(); s.totalNet = s.totalNet||0; s.totalPaidNet = s.totalPaidNet||0; s.totalCardLoss = s.totalCardLoss||0; s.txs = []; s._loaded = false; window.appData.suppliers.push(s); });
+    empSnap.forEach(d => { let em = d.data(); em.totalWages = em.totalWages||0; em.totalCardLoss = em.totalCardLoss||0; em.txs = []; em._loaded = false; window.appData.employees.push(em); });
     orderSnap.forEach(d => window.appData.orders.push(d.data()));
     resSnap.forEach(d => window.appData.resources.push(d.data()));
     toolSnap.forEach(d => window.appData.tools.push(d.data()));
@@ -709,19 +716,53 @@ async function loadCloudData() {
   }
 }
 
+/* ---------- lazy fetch: only when an account is actually opened ---------- */
+window.cloudFetch = {
+  customerTxs: async cid => {
+    const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions"));
+    let arr = []; snap.forEach(d => arr.push(d.data()));
+    arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    return arr;
+  },
+  supplierTxs: async sid => {
+    const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions"));
+    let arr = []; snap.forEach(d => arr.push(d.data()));
+    arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    return arr;
+  },
+  employeeTxs: async eid => {
+    const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions"));
+    let arr = []; snap.forEach(d => arr.push(d.data()));
+    arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    return arr;
+  }
+};
+
+function statsUpdatePayload(delta){
+  let updates = {};
+  for (const k in delta) { if (delta[k]) updates['stats.' + k] = increment(delta[k]); }
+  return updates;
+}
+
 window.cloudSave = {
-  customerInfo: async c => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(c.id)), { id: c.id, name: c.name, phone: c.phone }),
+  customerInfo: async c => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(c.id)), { id: c.id, name: c.name, phone: c.phone, totalBill: c.totalBill||0, totalPaid: c.totalPaid||0 }),
   customerTx: async (cid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(t.id)), t),
   deleteCustomerTx: async (cid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(tid))),
-  deleteCustomerDoc: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(id))),
-  supplierInfo: async s => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { id: s.id, name: s.name, phone: s.phone }),
+  deleteCustomerDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(id))); },
+  applyCustomerDelta: async (cid, deltaTotal, deltaPaid) => { if(!currentUser || (!deltaTotal && !deltaPaid)) return; await updateDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid)), { totalBill: increment(deltaTotal||0), totalPaid: increment(deltaPaid||0) }); },
+
+  supplierInfo: async s => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { id: s.id, name: s.name, phone: s.phone, totalNet: s.totalNet||0, totalPaidNet: s.totalPaidNet||0, totalCardLoss: s.totalCardLoss||0 }),
   supplierTx: async (sid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(t.id)), t),
   deleteSupplierTx: async (sid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(tid))),
-  deleteSupplierDoc: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(id))),
-  employeeInfo: async em => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(em.id)), { id: em.id, name: em.name, phone: em.phone, role: em.role }),
+  deleteSupplierDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(id))); },
+  applySupplierDelta: async (sid, deltaNet, deltaPaidNet, deltaCardLoss) => { if(!currentUser) return; await updateDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid)), { totalNet: increment(deltaNet||0), totalPaidNet: increment(deltaPaidNet||0), totalCardLoss: increment(deltaCardLoss||0) }); },
+
+  employeeInfo: async em => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(em.id)), { id: em.id, name: em.name, phone: em.phone, role: em.role, totalWages: em.totalWages||0, totalCardLoss: em.totalCardLoss||0 }),
   employeeTx: async (eid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(t.id)), t),
   deleteEmployeeTx: async (eid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(tid))),
-  deleteEmployeeDoc: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(id))),
+  deleteEmployeeDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(id))); },
+  applyEmployeeDelta: async (eid, deltaAmount, deltaCardLoss) => { if(!currentUser) return; await updateDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid)), { totalWages: increment(deltaAmount||0), totalCardLoss: increment(deltaCardLoss||0) }); },
+
   order: async o => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(o.id)), o),
   deleteOrder: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(id))),
   resource: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), r),
@@ -731,7 +772,63 @@ window.cloudSave = {
   expense: async ex => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(ex.id)), ex),
   deleteExpense: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(id))),
   log: async l => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "logs", String(l.id)), l),
-  settings: async () => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid), { invoiceSettings: window.appData.invoiceSettings }, { merge: true })
+  settings: async () => currentUser && setDoc(rootRef(), { invoiceSettings: window.appData.invoiceSettings }, { merge: true }),
+
+  /* central place every mutation calls to keep the fast Dashboard numbers correct */
+  applyStatsDelta: async delta => { if(!currentUser) return; const payload = statsUpdatePayload(delta); if(Object.keys(payload).length) await updateDoc(rootRef(), payload); }
+};
+
+/* ---------- recalculation / integrity check ----------
+   Does a FULL scan of every transaction (only run on demand, never on startup)
+   and compares it against the fast aggregate numbers. Can rebuild if they drift. */
+window.recalcStats = async function(rebuild){
+  if(!currentUser) return null;
+  const actual = { totalSales:0, totalCustPaid:0, totalPurchases:0, totalSuppPaidNet:0, totalWages:0, totalExpenses:0, totalCardLoss:0 };
+  const custAgg = [], suppAgg = [], empAgg = [];
+
+  const custSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers"));
+  for (let d of custSnap.docs) {
+    const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", d.id, "transactions"));
+    let bill=0, paid=0;
+    txSnap.forEach(t => { const tx=t.data(); bill += (tx.total||0); paid += (tx.paid||0); });
+    actual.totalSales += bill; actual.totalCustPaid += paid;
+    custAgg.push({ id: d.id, totalBill: bill, totalPaid: paid });
+  }
+  const suppSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers"));
+  for (let d of suppSnap.docs) {
+    const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers", d.id, "transactions"));
+    let net=0, paidNet=0, cardLoss=0;
+    txSnap.forEach(t => { const tx=t.data(); net += (tx.supplierTotalNet||0); paidNet += (tx.supplierPaidNet||0); cardLoss += (tx.cardLoss||0); });
+    actual.totalPurchases += net; actual.totalSuppPaidNet += paidNet; actual.totalCardLoss += cardLoss;
+    suppAgg.push({ id: d.id, totalNet: net, totalPaidNet: paidNet, totalCardLoss: cardLoss });
+  }
+  const empSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees"));
+  for (let d of empSnap.docs) {
+    const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees", d.id, "transactions"));
+    let amount=0, cardLoss=0;
+    txSnap.forEach(t => { const tx=t.data(); amount += (tx.amount||0); cardLoss += (tx.cardLoss||0); });
+    actual.totalWages += amount; actual.totalCardLoss += cardLoss;
+    empAgg.push({ id: d.id, totalWages: amount, totalCardLoss: cardLoss });
+  }
+  const expSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "expenses"));
+  expSnap.forEach(d => { const ex = d.data(); actual.totalExpenses += (ex.amount||0); actual.totalCardLoss += (ex.cardLoss||0); });
+
+  const current = window.appData.stats;
+  let matches = true;
+  for (const k in actual) { if (Math.abs((actual[k]||0) - (current[k]||0)) > 0.01) matches = false; }
+
+  if (rebuild) {
+    await setDoc(rootRef(), { stats: actual }, { merge: true });
+    for (let c of custAgg) await setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(c.id)), { totalBill: c.totalBill, totalPaid: c.totalPaid }, { merge: true });
+    for (let s of suppAgg) await setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { totalNet: s.totalNet, totalPaidNet: s.totalPaidNet, totalCardLoss: s.totalCardLoss }, { merge: true });
+    for (let em of empAgg) await setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(em.id)), { totalWages: em.totalWages, totalCardLoss: em.totalCardLoss }, { merge: true });
+    window.appData.stats = actual;
+    for (let c of window.appData.customers) { const f = custAgg.find(x=>x.id===c.id); if(f){ c.totalBill=f.totalBill; c.totalPaid=f.totalPaid; } }
+    for (let s of window.appData.suppliers) { const f = suppAgg.find(x=>x.id===s.id); if(f){ s.totalNet=f.totalNet; s.totalPaidNet=f.totalPaidNet; s.totalCardLoss=f.totalCardLoss; } }
+    for (let em of window.appData.employees) { const f = empAgg.find(x=>x.id===em.id); if(f){ em.totalWages=f.totalWages; em.totalCardLoss=f.totalCardLoss; } }
+    window.refreshUI();
+  }
+  return { matches, actual, current: {...current} };
 };
 
 window.resetCloudData = function () {
@@ -748,19 +845,31 @@ window.resetCloudData = function () {
           await deleteDoc(d.ref);
         }
       }
+      await setDoc(rootRef(), { stats: ZERO_STATS }, { merge: true });
       window.showToast("تم تصفير كل البيانات بنجاح.");
       location.reload();
     } catch (e) { window.showToast("حدث خطأ أثناء التصفير."); }
   });
 };
 
-window.exportBackup = function () {
+window.exportBackup = async function () {
+  // Some accounts may not have their invoices loaded yet (lazy loading) — fetch
+  // anything missing first so the exported file is a complete, real backup.
+  window.showToast("⏳ جاري تجهيز نسخة كاملة قبل التصدير...");
+  try{
+    if(window.cloudFetch){
+      for (let c of window.appData.customers) if(!c._loaded){ c.txs = await window.cloudFetch.customerTxs(c.id); c._loaded = true; }
+      for (let s of window.appData.suppliers) if(!s._loaded){ s.txs = await window.cloudFetch.supplierTxs(s.id); s._loaded = true; }
+      for (let em of window.appData.employees) if(!em._loaded){ em.txs = await window.cloudFetch.employeeTxs(em.id); em._loaded = true; }
+    }
+  }catch(e){ window.showToast("⚠️ تعذر تحميل بعض الحركات، جاري التصدير بما هو متوفر."); }
+
   let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.appData, null, 2));
   let a = document.createElement('a');
   a.href = dataStr;
   a.download = `workshop_backup_${window.getDate()}.json`;
   document.body.appendChild(a); a.click(); a.remove();
-  window.showToast("تم تصدير النسخة الاحتياطية.");
+  window.showToast("✅ تم تصدير النسخة الاحتياطية الكاملة.");
 };
 
 window.importBackup = function (event) {
@@ -772,7 +881,7 @@ window.importBackup = function (event) {
       try {
         let imported = JSON.parse(e.target.result);
         if (!imported || !Array.isArray(imported.customers)) { window.showToast("❌ ملف غير صالح."); return; }
-        window.appData = imported;
+        window.appData.invoiceSettings = imported.invoiceSettings || DEFAULT_SETTINGS;
         for (let c of imported.customers || []) { await window.cloudSave.customerInfo(c); for (let t of c.txs || []) await window.cloudSave.customerTx(c.id, t); }
         for (let s of imported.suppliers || []) { await window.cloudSave.supplierInfo(s); for (let t of s.txs || []) await window.cloudSave.supplierTx(s.id, t); }
         for (let em of imported.employees || []) { await window.cloudSave.employeeInfo(em); for (let t of em.txs || []) await window.cloudSave.employeeTx(em.id, t); }
@@ -781,6 +890,8 @@ window.importBackup = function (event) {
         for (let t of imported.tools || []) await window.cloudSave.tool(t);
         for (let ex of imported.expenses || []) await window.cloudSave.expense(ex);
         await window.cloudSave.settings();
+        window.showToast("⏳ جاري إعادة بناء الإحصائيات...");
+        await window.recalcStats(true);
         window.showToast("✅ تمت الاستعادة بنجاح.");
         location.reload();
       } catch (err) { window.showToast("❌ ملف غير صالح."); }
@@ -912,7 +1023,7 @@ window.checkUpcomingOrdersForNotifications = checkUpcomingOrdersForNotifications
 /* ---------- CUSTOMERS ---------- */
 window.addCustomer = function(e){
   e.preventDefault();
-  let c = { id: uid(), name: document.getElementById('newCustName').value.trim(), phone: document.getElementById('newCustPhone').value.trim() || '-', txs: [] };
+  let c = { id: uid(), name: document.getElementById('newCustName').value.trim(), phone: document.getElementById('newCustPhone').value.trim() || '-', totalBill:0, totalPaid:0, txs: [], _loaded: true };
   if(!c.name) return;
   window.appData.customers.push(c);
   addLog("إضافة زبون", `تم إضافة الزبون: ${c.name}`);
@@ -922,8 +1033,7 @@ window.addCustomer = function(e){
 function renderCustomers(){
   let html = '';
   window.appData.customers.forEach(c=>{
-    if(!c.txs) c.txs = [];
-    let tot = c.txs.reduce((a,b)=>a+(b.total||0),0), paid = c.txs.reduce((a,b)=>a+(b.paid||0),0), rem = tot-paid;
+    let tot = c.totalBill||0, paid = c.totalPaid||0, rem = tot-paid;
     html += `<tr><td class="clickable" onclick="openCust('${c.id}')">${esc(c.name)}</td><td>${esc(c.phone)}</td><td class="num">${money(tot)}</td><td class="num">${money(paid)}</td><td class="num" style="color:${rem>0?'var(--bad)':'inherit'};font-weight:800;">${money(rem)}</td><td><button class="btn btn-danger" onclick="delCust('${c.id}')">حذف</button></td></tr>`;
   });
   document.getElementById('customersTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا يوجد زبائن مسجلين بعد</td></tr>`;
@@ -934,12 +1044,15 @@ window.delCust = function(id){
   if(!c) return;
   askConfirm("حذف الزبون", `هل أنت متأكد من حذف الزبون "${c.name}" وكل فواتيره؟ لا يمكن التراجع.`, ()=>{
     addLog("حذف زبون", `حذف الزبون: ${c.name}`);
+    window.appData.stats.totalSales -= (c.totalBill||0);
+    window.appData.stats.totalCustPaid -= (c.totalPaid||0);
+    if(window.cloudSave) window.cloudSave.applyStatsDelta({ totalSales: -(c.totalBill||0), totalCustPaid: -(c.totalPaid||0) });
     window.appData.customers = window.appData.customers.filter(x=>x.id!==id);
     if(window.cloudSave) window.cloudSave.deleteCustomerDoc(id);
     save(); showToast("تم حذف الزبون.");
   });
 };
-window.openCust = function(id){
+window.openCust = async function(id){
   let c = window.appData.customers.find(x=>x.id===id);
   if(!c) return;
   document.getElementById('activeCustId').value = c.id;
@@ -947,6 +1060,13 @@ window.openCust = function(id){
   document.getElementById('custListView').classList.add('hidden');
   document.getElementById('custDetailView').classList.remove('hidden');
   cancelCustEdit();
+  if(!c._loaded){
+    document.getElementById('customerTxTable').innerHTML = `<tr class="loading-row"><td colspan="7">جاري تحميل حركات الزبون<span class="spin"></span></td></tr>`;
+    try{
+      c.txs = window.cloudFetch ? await window.cloudFetch.customerTxs(c.id) : [];
+      c._loaded = true;
+    }catch(e){ showToast("تعذر تحميل الحركات."); }
+  }
   renderCustTxs(c);
 };
 window.toggleCustFormMode = function(){
@@ -967,16 +1087,24 @@ window.saveCustomerAction = function(e){
   let method = document.getElementById('billCustMethod').value;
   let txId = editId || uid();
   let tx = { id: txId, date: getDate(), desc, total, paid, method, createdAt: Date.now() };
+  let deltaTotal = total, deltaPaid = paid;
   if(editId){
     let idx = c.txs.findIndex(t=>t.id===editId);
-    if(idx!==-1) tx.createdAt = c.txs[idx].createdAt;
-    if(idx!==-1) c.txs[idx] = tx;
+    if(idx!==-1){ tx.createdAt = c.txs[idx].createdAt; deltaTotal = total - (c.txs[idx].total||0); deltaPaid = paid - (c.txs[idx].paid||0); c.txs[idx] = tx; }
     addLog("تعديل فاتورة زبون", `تعديل حركة للزبون ${c.name}`);
   } else {
     c.txs.push(tx);
     addLog("إضافة فاتورة زبون", `حركة جديدة للزبون ${c.name}`);
   }
-  if(window.cloudSave) window.cloudSave.customerTx(c.id, tx);
+  c.totalBill = (c.totalBill||0) + deltaTotal;
+  c.totalPaid = (c.totalPaid||0) + deltaPaid;
+  window.appData.stats.totalSales += deltaTotal;
+  window.appData.stats.totalCustPaid += deltaPaid;
+  if(window.cloudSave){
+    window.cloudSave.customerTx(c.id, tx);
+    window.cloudSave.applyCustomerDelta(c.id, deltaTotal, deltaPaid);
+    window.cloudSave.applyStatsDelta({ totalSales: deltaTotal, totalCustPaid: deltaPaid });
+  }
   save(); openCust(c.id); showToast("✅ تم الحفظ.");
 };
 window.editCustTx = function(cid, tid){
@@ -1013,9 +1141,20 @@ function renderCustTxs(c){
 window.delCustTx = function(cid, tid){
   askConfirm("حذف الحركة", "هل تريد حذف هذه الحركة نهائياً؟", ()=>{
     let c = window.appData.customers.find(x=>x.id===cid);
+    let t = c.txs.find(x=>x.id===tid);
+    if(!t) return;
+    let deltaTotal = -(t.total||0), deltaPaid = -(t.paid||0);
     c.txs = c.txs.filter(t=>t.id!==tid);
+    c.totalBill = (c.totalBill||0) + deltaTotal;
+    c.totalPaid = (c.totalPaid||0) + deltaPaid;
+    window.appData.stats.totalSales += deltaTotal;
+    window.appData.stats.totalCustPaid += deltaPaid;
     addLog("حذف فاتورة زبون", `حذف حركة من حساب ${c.name}`);
-    if(window.cloudSave) window.cloudSave.deleteCustomerTx(cid, tid);
+    if(window.cloudSave){
+      window.cloudSave.deleteCustomerTx(cid, tid);
+      window.cloudSave.applyCustomerDelta(cid, deltaTotal, deltaPaid);
+      window.cloudSave.applyStatsDelta({ totalSales: deltaTotal, totalCustPaid: deltaPaid });
+    }
     save(); openCust(cid); showToast("تم الحذف.");
   });
 };
@@ -1023,7 +1162,7 @@ window.delCustTx = function(cid, tid){
 /* ---------- SUPPLIERS ---------- */
 window.addSupplier = function(e){
   e.preventDefault();
-  let s = { id: uid(), name: document.getElementById('newSuppName').value.trim(), phone: document.getElementById('newSuppPhone').value.trim() || '-', txs: [] };
+  let s = { id: uid(), name: document.getElementById('newSuppName').value.trim(), phone: document.getElementById('newSuppPhone').value.trim() || '-', totalNet:0, totalPaidNet:0, totalCardLoss:0, txs: [], _loaded: true };
   if(!s.name) return;
   window.appData.suppliers.push(s);
   addLog("إضافة مورد", `تم إضافة المورد: ${s.name}`);
@@ -1033,8 +1172,7 @@ window.addSupplier = function(e){
 function renderSuppliers(){
   let html = '';
   window.appData.suppliers.forEach(s=>{
-    if(!s.txs) s.txs = [];
-    let tot = s.txs.reduce((a,b)=>a+(b.supplierTotalNet||0),0), paid = s.txs.reduce((a,b)=>a+(b.supplierPaidNet||0),0), rem = tot-paid;
+    let tot = s.totalNet||0, paid = s.totalPaidNet||0, rem = tot-paid;
     html += `<tr><td class="clickable" onclick="openSupp('${s.id}')">${esc(s.name)}</td><td>${esc(s.phone)}</td><td class="num">${money(tot)}</td><td class="num">${money(paid)}</td><td class="num" style="color:${rem>0?'var(--bad)':'inherit'};font-weight:800;">${money(rem)}</td><td><button class="btn btn-danger" onclick="delSupp('${s.id}')">حذف</button></td></tr>`;
   });
   document.getElementById('suppliersTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا يوجد موردين مسجلين بعد</td></tr>`;
@@ -1045,12 +1183,16 @@ window.delSupp = function(id){
   if(!s) return;
   askConfirm("حذف المورد", `هل أنت متأكد من حذف المورد "${s.name}" وكل فواتيره؟`, ()=>{
     addLog("حذف مورد", `حذف المورد: ${s.name}`);
+    window.appData.stats.totalPurchases -= (s.totalNet||0);
+    window.appData.stats.totalSuppPaidNet -= (s.totalPaidNet||0);
+    window.appData.stats.totalCardLoss -= (s.totalCardLoss||0);
+    if(window.cloudSave) window.cloudSave.applyStatsDelta({ totalPurchases: -(s.totalNet||0), totalSuppPaidNet: -(s.totalPaidNet||0), totalCardLoss: -(s.totalCardLoss||0) });
     window.appData.suppliers = window.appData.suppliers.filter(x=>x.id!==id);
     if(window.cloudSave) window.cloudSave.deleteSupplierDoc(id);
     save(); showToast("تم حذف المورد.");
   });
 };
-window.openSupp = function(id){
+window.openSupp = async function(id){
   let s = window.appData.suppliers.find(x=>x.id===id);
   if(!s) return;
   document.getElementById('activeSuppId').value = s.id;
@@ -1058,6 +1200,13 @@ window.openSupp = function(id){
   document.getElementById('suppListView').classList.add('hidden');
   document.getElementById('suppDetailView').classList.remove('hidden');
   cancelSuppEdit();
+  if(!s._loaded){
+    document.getElementById('supplierTxTable').innerHTML = `<tr class="loading-row"><td colspan="8">جاري تحميل حركات المورد<span class="spin"></span></td></tr>`;
+    try{
+      s.txs = window.cloudFetch ? await window.cloudFetch.supplierTxs(s.id) : [];
+      s._loaded = true;
+    }catch(e){ showToast("تعذر تحميل الحركات."); }
+  }
   renderSuppTxs(s);
 };
 window.toggleSuppFormMode = function(){
@@ -1088,16 +1237,32 @@ window.saveSupplierAction = function(e){
   }
   let txId = editId || uid();
   let tx = { id: txId, date: getDate(), desc, supplierTotalNet, grossPaid, supplierPaidNet, method, cardLoss, createdAt: Date.now() };
+  let deltaNet = supplierTotalNet, deltaPaidNet = supplierPaidNet, deltaCardLoss = cardLoss;
   if(editId){
     let idx = s.txs.findIndex(t=>t.id===editId);
-    if(idx!==-1) tx.createdAt = s.txs[idx].createdAt;
-    if(idx!==-1) s.txs[idx] = tx;
+    if(idx!==-1){
+      tx.createdAt = s.txs[idx].createdAt;
+      deltaNet = supplierTotalNet - (s.txs[idx].supplierTotalNet||0);
+      deltaPaidNet = supplierPaidNet - (s.txs[idx].supplierPaidNet||0);
+      deltaCardLoss = cardLoss - (s.txs[idx].cardLoss||0);
+      s.txs[idx] = tx;
+    }
     addLog("تعديل فاتورة مورد", `تعديل حركة للمورد ${s.name}`);
   } else {
     s.txs.push(tx);
     addLog("إضافة فاتورة مورد", `حركة جديدة للمورد ${s.name}`);
   }
-  if(window.cloudSave) window.cloudSave.supplierTx(s.id, tx);
+  s.totalNet = (s.totalNet||0) + deltaNet;
+  s.totalPaidNet = (s.totalPaidNet||0) + deltaPaidNet;
+  s.totalCardLoss = (s.totalCardLoss||0) + deltaCardLoss;
+  window.appData.stats.totalPurchases += deltaNet;
+  window.appData.stats.totalSuppPaidNet += deltaPaidNet;
+  window.appData.stats.totalCardLoss += deltaCardLoss;
+  if(window.cloudSave){
+    window.cloudSave.supplierTx(s.id, tx);
+    window.cloudSave.applySupplierDelta(s.id, deltaNet, deltaPaidNet, deltaCardLoss);
+    window.cloudSave.applyStatsDelta({ totalPurchases: deltaNet, totalSuppPaidNet: deltaPaidNet, totalCardLoss: deltaCardLoss });
+  }
   save(); openSupp(s.id); showToast("✅ تم الحفظ.");
 };
 window.editSuppTx = function(sid, tid){
@@ -1135,9 +1300,22 @@ function renderSuppTxs(s){
 window.delSuppTx = function(sid, tid){
   askConfirm("حذف الحركة", "هل تريد حذف هذه الحركة نهائياً؟", ()=>{
     let s = window.appData.suppliers.find(x=>x.id===sid);
+    let t = s.txs.find(x=>x.id===tid);
+    if(!t) return;
+    let deltaNet = -(t.supplierTotalNet||0), deltaPaidNet = -(t.supplierPaidNet||0), deltaCardLoss = -(t.cardLoss||0);
     s.txs = s.txs.filter(t=>t.id!==tid);
+    s.totalNet = (s.totalNet||0) + deltaNet;
+    s.totalPaidNet = (s.totalPaidNet||0) + deltaPaidNet;
+    s.totalCardLoss = (s.totalCardLoss||0) + deltaCardLoss;
+    window.appData.stats.totalPurchases += deltaNet;
+    window.appData.stats.totalSuppPaidNet += deltaPaidNet;
+    window.appData.stats.totalCardLoss += deltaCardLoss;
     addLog("حذف فاتورة مورد", `حذف حركة من ${s.name}`);
-    if(window.cloudSave) window.cloudSave.deleteSupplierTx(sid, tid);
+    if(window.cloudSave){
+      window.cloudSave.deleteSupplierTx(sid, tid);
+      window.cloudSave.applySupplierDelta(sid, deltaNet, deltaPaidNet, deltaCardLoss);
+      window.cloudSave.applyStatsDelta({ totalPurchases: deltaNet, totalSuppPaidNet: deltaPaidNet, totalCardLoss: deltaCardLoss });
+    }
     save(); openSupp(sid); showToast("تم الحذف.");
   });
 };
@@ -1258,8 +1436,17 @@ window.confirmDelivery = function(e){
   if(!customer.txs) customer.txs = [];
   let tx = { id: uid(), date: getDate(), desc: `طقم: ${order.type} | قماش: ${order.fabric} | أرجل: ${order.legs}`, total: order.price, paid: paidAmount, method, createdAt: Date.now() };
   customer.txs.push(tx);
+  customer.totalBill = (customer.totalBill||0) + tx.total;
+  customer.totalPaid = (customer.totalPaid||0) + tx.paid;
+  window.appData.stats.totalSales += tx.total;
+  window.appData.stats.totalCustPaid += tx.paid;
   addLog("تسليم طلب", `تسليم طلب وإصدار فاتورة للزبون ${customer.name}`);
-  if(window.cloudSave){ window.cloudSave.order(order); window.cloudSave.customerTx(customer.id, tx); }
+  if(window.cloudSave){
+    window.cloudSave.order(order);
+    window.cloudSave.customerTx(customer.id, tx);
+    window.cloudSave.applyCustomerDelta(customer.id, tx.total, tx.paid);
+    window.cloudSave.applyStatsDelta({ totalSales: tx.total, totalCustPaid: tx.paid });
+  }
   save(); closeModal('deliverModal'); showToast("✅ تم تسليم الطلب وإصدار الفاتورة.");
 };
 
@@ -1371,7 +1558,7 @@ window.delTool = function(id){
 /* ---------- EMPLOYEES ---------- */
 window.addEmployee = function(e){
   e.preventDefault();
-  let em = { id: uid(), name: document.getElementById('newEmpName').value.trim(), role: document.getElementById('newEmpRole').value.trim()||'-', phone: document.getElementById('newEmpPhone').value.trim()||'-', txs: [] };
+  let em = { id: uid(), name: document.getElementById('newEmpName').value.trim(), role: document.getElementById('newEmpRole').value.trim()||'-', phone: document.getElementById('newEmpPhone').value.trim()||'-', totalWages:0, totalCardLoss:0, txs: [], _loaded: true };
   if(!em.name) return;
   window.appData.employees.push(em);
   addLog("إضافة موظف", `تم إضافة الموظف: ${em.name}`);
@@ -1381,9 +1568,7 @@ window.addEmployee = function(e){
 function renderEmployees(){
   let html='';
   window.appData.employees.forEach(em=>{
-    if(!em.txs) em.txs = [];
-    let total = em.txs.reduce((a,b)=>a+(b.amount||0),0);
-    html += `<tr><td class="clickable" onclick="openEmp('${em.id}')">${esc(em.name)}</td><td>${esc(em.role)}</td><td>${esc(em.phone)}</td><td class="num">${money(total)}</td><td><button class="btn btn-danger" onclick="delEmp('${em.id}')">حذف</button></td></tr>`;
+    html += `<tr><td class="clickable" onclick="openEmp('${em.id}')">${esc(em.name)}</td><td>${esc(em.role)}</td><td>${esc(em.phone)}</td><td class="num">${money(em.totalWages||0)}</td><td><button class="btn btn-danger" onclick="delEmp('${em.id}')">حذف</button></td></tr>`;
   });
   document.getElementById('employeesTable').innerHTML = html || `<tr class="empty-row"><td colspan="5">لا يوجد موظفين مسجلين بعد</td></tr>`;
   document.getElementById('empCountBadge').textContent = window.appData.employees.length;
@@ -1393,12 +1578,15 @@ window.delEmp = function(id){
   if(!em) return;
   askConfirm("حذف الموظف", `هل تريد حذف الموظف "${em.name}" وكل سجل أجوره؟`, ()=>{
     addLog("حذف موظف", `حذف الموظف: ${em.name}`);
+    window.appData.stats.totalWages -= (em.totalWages||0);
+    window.appData.stats.totalCardLoss -= (em.totalCardLoss||0);
+    if(window.cloudSave) window.cloudSave.applyStatsDelta({ totalWages: -(em.totalWages||0), totalCardLoss: -(em.totalCardLoss||0) });
     window.appData.employees = window.appData.employees.filter(x=>x.id!==id);
     if(window.cloudSave) window.cloudSave.deleteEmployeeDoc(id);
     save(); showToast("تم حذف الموظف.");
   });
 };
-window.openEmp = function(id){
+window.openEmp = async function(id){
   let em = window.appData.employees.find(x=>x.id===id);
   if(!em) return;
   document.getElementById('activeEmpId').value = em.id;
@@ -1406,6 +1594,13 @@ window.openEmp = function(id){
   document.getElementById('empListView').classList.add('hidden');
   document.getElementById('empDetailView').classList.remove('hidden');
   cancelEmpEdit();
+  if(!em._loaded){
+    document.getElementById('employeeTxTable').innerHTML = `<tr class="loading-row"><td colspan="6">جاري تحميل سجل الأجور<span class="spin"></span></td></tr>`;
+    try{
+      em.txs = window.cloudFetch ? await window.cloudFetch.employeeTxs(em.id) : [];
+      em._loaded = true;
+    }catch(e){ showToast("تعذر تحميل السجل."); }
+  }
   renderEmpTxs(em);
 };
 window.saveEmployeeAction = function(e){
@@ -1419,15 +1614,29 @@ window.saveEmployeeAction = function(e){
   let desc = document.getElementById('empTxDesc').value.trim();
   let txId = editId || uid();
   let tx = { id: txId, date: getDate(), desc, amount, method, cardLoss: amount*getCardLossRate(method), createdAt: Date.now() };
+  let deltaAmount = amount, deltaCardLoss = tx.cardLoss;
   if(editId){
     let idx = em.txs.findIndex(t=>t.id===editId);
-    if(idx!==-1){ tx.createdAt = em.txs[idx].createdAt; em.txs[idx] = tx; }
+    if(idx!==-1){
+      tx.createdAt = em.txs[idx].createdAt;
+      deltaAmount = amount - (em.txs[idx].amount||0);
+      deltaCardLoss = tx.cardLoss - (em.txs[idx].cardLoss||0);
+      em.txs[idx] = tx;
+    }
     addLog("تعديل أجر", `تعديل أجر للموظف ${em.name}`);
   } else {
     em.txs.push(tx);
     addLog("تسجيل أجر", `أجر جديد للموظف ${em.name}`);
   }
-  if(window.cloudSave) window.cloudSave.employeeTx(em.id, tx);
+  em.totalWages = (em.totalWages||0) + deltaAmount;
+  em.totalCardLoss = (em.totalCardLoss||0) + deltaCardLoss;
+  window.appData.stats.totalWages += deltaAmount;
+  window.appData.stats.totalCardLoss += deltaCardLoss;
+  if(window.cloudSave){
+    window.cloudSave.employeeTx(em.id, tx);
+    window.cloudSave.applyEmployeeDelta(em.id, deltaAmount, deltaCardLoss);
+    window.cloudSave.applyStatsDelta({ totalWages: deltaAmount, totalCardLoss: deltaCardLoss });
+  }
   save(); openEmp(em.id); showToast("✅ تم الحفظ.");
 };
 window.editEmpTx = function(eid, tid){
@@ -1458,9 +1667,20 @@ function renderEmpTxs(em){
 window.delEmpTx = function(eid, tid){
   askConfirm("حذف الحركة", "هل تريد حذف هذا السجل؟", ()=>{
     let em = window.appData.employees.find(x=>x.id===eid);
+    let t = em.txs.find(x=>x.id===tid);
+    if(!t) return;
+    let deltaAmount = -(t.amount||0), deltaCardLoss = -(t.cardLoss||0);
     em.txs = em.txs.filter(t=>t.id!==tid);
+    em.totalWages = (em.totalWages||0) + deltaAmount;
+    em.totalCardLoss = (em.totalCardLoss||0) + deltaCardLoss;
+    window.appData.stats.totalWages += deltaAmount;
+    window.appData.stats.totalCardLoss += deltaCardLoss;
     addLog("حذف أجر", `حذف حركة أجر من ${em.name}`);
-    if(window.cloudSave) window.cloudSave.deleteEmployeeTx(eid, tid);
+    if(window.cloudSave){
+      window.cloudSave.deleteEmployeeTx(eid, tid);
+      window.cloudSave.applyEmployeeDelta(eid, deltaAmount, deltaCardLoss);
+      window.cloudSave.applyStatsDelta({ totalWages: deltaAmount, totalCardLoss: deltaCardLoss });
+    }
     save(); openEmp(eid); showToast("تم الحذف.");
   });
 };
@@ -1474,8 +1694,13 @@ window.addExpense = function(e){
   let exp = { id: uid(), date: getDate(), title, amount, method, cardLoss: amount*getCardLossRate(method) };
   window.appData.expenses = window.appData.expenses || [];
   window.appData.expenses.push(exp);
+  window.appData.stats.totalExpenses += exp.amount;
+  window.appData.stats.totalCardLoss += exp.cardLoss;
   addLog("مصروف", `تسجيل مصروف: ${title}`);
-  if(window.cloudSave) window.cloudSave.expense(exp);
+  if(window.cloudSave){
+    window.cloudSave.expense(exp);
+    window.cloudSave.applyStatsDelta({ totalExpenses: exp.amount, totalCardLoss: exp.cardLoss });
+  }
   save(); e.target.reset(); showToast("✅ تم تسجيل المصروف.");
 };
 function renderExpenses(){
@@ -1489,8 +1714,15 @@ function renderExpenses(){
 }
 window.delExp = function(id){
   askConfirm("حذف المصروف", "هل تريد حذف هذا المصروف؟", ()=>{
+    let ex = window.appData.expenses.find(x=>x.id===id);
+    if(!ex) return;
     window.appData.expenses = window.appData.expenses.filter(e=>e.id!==id);
-    if(window.cloudSave) window.cloudSave.deleteExpense(id);
+    window.appData.stats.totalExpenses -= (ex.amount||0);
+    window.appData.stats.totalCardLoss -= (ex.cardLoss||0);
+    if(window.cloudSave){
+      window.cloudSave.deleteExpense(id);
+      window.cloudSave.applyStatsDelta({ totalExpenses: -(ex.amount||0), totalCardLoss: -(ex.cardLoss||0) });
+    }
     save(); showToast("تم الحذف.");
   });
 };
@@ -1504,27 +1736,27 @@ window.performGlobalSearch = function(){
 
   let mc = (window.appData.customers||[]).filter(c=>c.name.toLowerCase().includes(q) || (c.phone||'').includes(q));
   if(mc.length){
-    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">👥 الزبائن</h3><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجراء</th></tr></thead><tbody>`;
+    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">👥 الزبائن</h3><div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجراء</th></tr></thead><tbody>`;
     mc.forEach(c=>html+=`<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td><button class="btn btn-sm btn-amber" onclick="goTo('s-customers'); openCust('${c.id}');">فتح الحساب</button></td></tr>`);
-    html += `</tbody></table>`;
+    html += `</tbody></table></div>`;
   }
   let ms = (window.appData.suppliers||[]).filter(s=>s.name.toLowerCase().includes(q) || (s.phone||'').includes(q));
   if(ms.length){
-    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">📦 الموردين</h3><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجراء</th></tr></thead><tbody>`;
+    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">📦 الموردين</h3><div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>إجراء</th></tr></thead><tbody>`;
     ms.forEach(s=>html+=`<tr><td>${esc(s.name)}</td><td>${esc(s.phone)}</td><td><button class="btn btn-sm btn-amber" onclick="goTo('s-suppliers'); openSupp('${s.id}');">فتح الحساب</button></td></tr>`);
-    html += `</tbody></table>`;
+    html += `</tbody></table></div>`;
   }
   let me = (window.appData.employees||[]).filter(em=>em.name.toLowerCase().includes(q) || (em.role||'').toLowerCase().includes(q));
   if(me.length){
-    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">👷 الموظفين</h3><table><thead><tr><th>الاسم</th><th>الدور</th><th>إجراء</th></tr></thead><tbody>`;
+    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">👷 الموظفين</h3><div class="tbl-wrap"><table><thead><tr><th>الاسم</th><th>الدور</th><th>إجراء</th></tr></thead><tbody>`;
     me.forEach(em=>html+=`<tr><td>${esc(em.name)}</td><td>${esc(em.role)}</td><td><button class="btn btn-sm btn-amber" onclick="goTo('s-employees'); openEmp('${em.id}');">فتح الحساب</button></td></tr>`);
-    html += `</tbody></table>`;
+    html += `</tbody></table></div>`;
   }
   let mo = (window.appData.orders||[]).filter(o=>o.customerName.toLowerCase().includes(q) || o.type.toLowerCase().includes(q) || (o.fabric||'').toLowerCase().includes(q) || (o.legs||'').toLowerCase().includes(q));
   if(mo.length){
-    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">📋 الطلبات</h3><table><thead><tr><th>التاريخ</th><th>الزبون</th><th>الطقم</th><th>القماش</th><th>الحالة</th></tr></thead><tbody>`;
+    html += `<h3 style="font-size:14px;margin:14px 0 8px;color:var(--walnut);">📋 الطلبات</h3><div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الزبون</th><th>الطقم</th><th>القماش</th><th>الحالة</th></tr></thead><tbody>`;
     mo.forEach(o=>html+=`<tr><td>${esc(o.date)}</td><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td>${esc(o.fabric)}</td><td>${esc(o.status)}</td></tr>`);
-    html += `</tbody></table>`;
+    html += `</tbody></table></div>`;
   }
   box.innerHTML = html || '<p style="color:var(--bad);text-align:center;padding:20px;">لا توجد نتائج مطابقة.</p>';
 };
@@ -1578,27 +1810,16 @@ window.shareInvoiceWhatsAppPdf = async function(){
 window.save = function(){ refreshUI(); };
 
 window.refreshUI = function(){
-  let tSales=0, tCustDebt=0;
-  (window.appData.customers||[]).forEach(c=>{
-    let cTot=0, cPaid=0;
-    (c.txs||[]).forEach(t=>{ tSales += (t.total||0); cTot += (t.total||0); cPaid += (t.paid||0); });
-    tCustDebt += (cTot-cPaid);
-  });
-
-  let tPurchases=0, tSuppDebt=0;
-  (window.appData.suppliers||[]).forEach(s=>{
-    let sTot=0, sPaidNet=0;
-    (s.txs||[]).forEach(t=>{ let tn=t.supplierTotalNet||0, pn=t.supplierPaidNet||0; tPurchases+=tn; sTot+=tn; sPaidNet+=pn; });
-    tSuppDebt += (sTot-sPaidNet);
-  });
-
-  let totalWages = (window.appData.employees||[]).reduce((sum,em)=>sum + (em.txs||[]).reduce((a,b)=>a+(b.amount||0),0), 0);
-  let totalExp = (window.appData.expenses||[]).reduce((sum,e)=>sum+(e.amount||0),0);
-
-  let cLoss = (window.appData.suppliers||[]).reduce((sum,s)=>sum+(s.txs||[]).reduce((a,b)=>a+(b.cardLoss||0),0),0)
-            + (window.appData.employees||[]).reduce((sum,em)=>sum+(em.txs||[]).reduce((a,b)=>a+(b.cardLoss||0),0),0)
-            + (window.appData.expenses||[]).reduce((sum,e)=>sum+(e.cardLoss||0),0);
-
+  // Dashboard reads the pre-computed stats doc instead of looping every invoice —
+  // this is what keeps the app fast no matter how many years of invoices pile up.
+  let st = window.appData.stats || {totalSales:0,totalCustPaid:0,totalPurchases:0,totalSuppPaidNet:0,totalWages:0,totalExpenses:0,totalCardLoss:0};
+  let tSales = st.totalSales||0;
+  let tCustDebt = (st.totalSales||0) - (st.totalCustPaid||0);
+  let tPurchases = st.totalPurchases||0;
+  let tSuppDebt = (st.totalPurchases||0) - (st.totalSuppPaidNet||0);
+  let totalWages = st.totalWages||0;
+  let totalExp = st.totalExpenses||0;
+  let cLoss = st.totalCardLoss||0;
   let totalBudget = tSales - (tPurchases + cLoss + totalWages + totalExp);
 
   document.getElementById('dSales').textContent = money(tSales);
@@ -1616,6 +1837,34 @@ window.refreshUI = function(){
   renderTools();
   renderLogs();
   loadInvoiceSettingsToForm();
+};
+
+/* ---------- stats integrity check / rebuild (Settings section) ---------- */
+window.runStatsCheck = async function(rebuild){
+  let box = document.getElementById('statsCheckResult');
+  box.innerHTML = `<p style="color:var(--ink-soft);"><span class="spin"></span> جاري ${rebuild?'إعادة بناء':'مراجعة'} الحسابات من كل الفواتير الفعلية...</p>`;
+  try{
+    let result = await window.recalcStats(!!rebuild);
+    if(!result){ box.innerHTML = ''; return; }
+    if(rebuild){
+      box.innerHTML = `<div class="match-box">✅ تم إعادة بناء كل الأرقام من الفواتير الفعلية وتصحيح أي فرق.</div>`;
+      showToast("✅ تم إعادة بناء الإحصائيات.");
+      return;
+    }
+    if(result.matches){
+      box.innerHTML = `<div class="match-box">✅ البيانات متطابقة 100% — الأرقام السريعة مطابقة تماماً للفواتير الفعلية.</div>`;
+    } else {
+      let rows = Object.keys(result.actual).map(k=>{
+        const labels = {totalSales:'المبيعات', totalCustPaid:'مقبوض من الزبائن', totalPurchases:'المشتريات', totalSuppPaidNet:'مسدد للموردين', totalWages:'الأجور', totalExpenses:'المصاريف', totalCardLoss:'خسارة الكروت'};
+        let a = result.actual[k]||0, c = result.current[k]||0;
+        if(Math.abs(a-c) < 0.01) return '';
+        return `<div style="display:flex;justify-content:space-between;margin-top:4px;"><span>${labels[k]||k}</span><span>المسجل: ${money(c)} → الفعلي: ${money(a)}</span></div>`;
+      }).join('');
+      box.innerHTML = `<div class="mismatch-box"><b>⚠️ يوجد اختلاف بسيط بين الأرقام السريعة والفواتير الفعلية</b>${rows}<div style="margin-top:10px;"><button class="btn btn-amber btn-sm" onclick="runStatsCheck(true)">🔧 إعادة بناء الأرقام الصحيحة الآن</button></div></div>`;
+    }
+  }catch(e){
+    box.innerHTML = `<div class="mismatch-box">تعذر إتمام المراجعة. تحقق من الاتصال بالإنترنت.</div>`;
+  }
 };
 </script>
 </body>
