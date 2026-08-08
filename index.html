@@ -129,6 +129,8 @@ tbody td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:mi
 tbody tr:hover{background:#fbf7f0;}
 .clickable{color:var(--amber);font-weight:800;cursor:pointer;}
 .clickable:hover{text-decoration:underline;}
+.clickable-row{cursor:pointer;}
+.clickable-row:hover{background:#fbf7f0;}
 .empty-row td{text-align:center;color:var(--ink-soft);padding:28px;font-style:italic;}
 
 .badge{padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;display:inline-block;}
@@ -400,24 +402,65 @@ tbody tr:hover{background:#fbf7f0;}
 
     <!-- ===== RESOURCES ===== -->
     <section class="section" id="s-resources">
-      <div class="panel">
-        <h2>إدارة المواد الخام والمخزون</h2>
-        <div class="tabs" id="resourceTabs">
-          <button class="tab-btn active" data-cat="wood" onclick="switchResourceTab('wood',this)">🪵 خشب</button>
-          <button class="tab-btn" data-cat="foam" onclick="switchResourceTab('foam',this)">🧽 سفنج</button>
-          <button class="tab-btn" data-cat="fabric" onclick="switchResourceTab('fabric',this)">🧵 قماش</button>
-          <button class="tab-btn" data-cat="hardware" onclick="switchResourceTab('hardware',this)">🔩 نواعم/إكسسوارات</button>
+      <div id="resListView">
+        <div class="panel">
+          <h2>إدارة المواد الخام والمخزون</h2>
+          <div class="tabs" id="resourceTabs">
+            <button class="tab-btn active" data-cat="wood" onclick="switchResourceTab('wood',this)">🪵 خشب</button>
+            <button class="tab-btn" data-cat="foam" onclick="switchResourceTab('foam',this)">🧽 سفنج</button>
+            <button class="tab-btn" data-cat="fabric" onclick="switchResourceTab('fabric',this)">🧵 قماش</button>
+            <button class="tab-btn" data-cat="hardware" onclick="switchResourceTab('hardware',this)">🔩 نواعم/إكسسوارات</button>
+          </div>
+          <form class="grid-form" onsubmit="addResourceItem(event)">
+            <input type="hidden" id="resourceCategory" value="wood">
+            <div class="field"><label>اسم النوعية / الصنف</label><input id="resName" required placeholder="سفنج كثافة 25 / خشب زان"></div>
+            <div class="field"><label>القياسات / المواصفات</label><input id="resDims" placeholder="سمك 5سم، عرض 140سم"></div>
+            <div class="field"><label>الكمية الحالية (اختياري)</label><input type="number" step="0.01" id="resInitQty" placeholder="0"></div>
+            <div class="field"><label>ملاحظات</label><input id="resNote" placeholder="ملاحظات..."></div>
+            <div class="field-actions"><button class="btn btn-primary">➕ إضافة نوعية جديدة</button></div>
+          </form>
+          <div class="tbl-wrap"><table><thead><tr><th>الصنف</th><th>القياسات</th><th>الكمية المتوفرة</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="resourcesTable"></tbody></table></div>
         </div>
-        <form class="grid-form" onsubmit="saveResource(event)">
-          <input type="hidden" id="resourceCategory" value="wood">
-          <input type="hidden" id="editResourceId">
-          <div class="field"><label>اسم الصنف</label><input id="resName" required placeholder="خشب زان / سفنج كثافة 36"></div>
-          <div class="field"><label>القياسات / المواصفات</label><input id="resDims" placeholder="سمك 5سم، عرض 140سم"></div>
-          <div class="field"><label>الكمية المتوفرة</label><input type="number" step="0.01" id="resQty" required placeholder="0"></div>
-          <div class="field"><label>ملاحظات</label><input id="resNote" placeholder="ملاحظات..."></div>
-          <div class="field-actions"><button class="btn btn-primary" id="resSubmitBtn">➕ إضافة للمخزون</button></div>
-        </form>
-        <div class="tbl-wrap"><table><thead><tr><th>القسم</th><th>الصنف</th><th>القياسات</th><th>الكمية</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="resourcesTable"></tbody></table></div>
+      </div>
+      <div id="resDetailView" class="hidden">
+        <input type="hidden" id="activeResId">
+        <button class="back-btn" onclick="backToList('res')">→ رجوع لقائمة الأصناف</button>
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+            <h2 id="detResTitle" style="margin:0;border:none;padding:0;">نوعية</h2>
+            <div style="background:var(--cream);padding:6px 14px;border-radius:8px;font-weight:800;color:var(--walnut);">
+              الكمية الحالية: <span id="detResQty" class="num">0</span>
+            </div>
+          </div>
+          <form id="resActionForm" class="grid-form" onsubmit="saveResourceMovement(event)">
+            <input type="hidden" id="editResMovId">
+            <div class="field"><label>نوع الحركة</label>
+              <select id="resMovType">
+                <option value="add">➕ إضافة كمية (شراء)</option>
+                <option value="use">➖ صرف / استخدام</option>
+              </select>
+            </div>
+            <div class="field"><label>الكمية</label><input type="number" step="0.01" id="resMovQty" required placeholder="0"></div>
+            <div class="field"><label>البيان / السبب</label><input id="resMovNote" placeholder="شراء دفعة جديدة، استخدام بطلب..."></div>
+            <div class="field-actions">
+              <button class="btn btn-primary" id="resMovSubmitBtn">💾 حفظ الحركة</button>
+              <button type="button" class="btn btn-ghost hidden" id="cancelResMovEditBtn" onclick="cancelResMovEdit()">إلغاء التعديل</button>
+            </div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>تعديل بيانات الصنف</h2>
+          <form class="grid-form" onsubmit="saveResourceInfo(event)">
+            <div class="field"><label>اسم الصنف</label><input id="resEditName" required></div>
+            <div class="field"><label>القياسات / المواصفات</label><input id="resEditDims"></div>
+            <div class="field"><label>ملاحظات</label><input id="resEditNote"></div>
+            <div class="field-actions"><button class="btn btn-ghost btn-sm">💾 تحديث البيانات</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>سجل الحركات</h2>
+          <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الحركة</th><th>الكمية</th><th>البيان</th><th>الرصيد بعدها</th><th>إجراء</th></tr></thead><tbody id="resMovTable"></tbody></table></div>
+        </div>
       </div>
     </section>
 
@@ -702,7 +745,7 @@ async function loadCloudData() {
     suppSnap.forEach(d => { let s = d.data(); s.totalNet = s.totalNet||0; s.totalPaidNet = s.totalPaidNet||0; s.totalCardLoss = s.totalCardLoss||0; s.txs = []; s._loaded = false; window.appData.suppliers.push(s); });
     empSnap.forEach(d => { let em = d.data(); em.totalWages = em.totalWages||0; em.totalCardLoss = em.totalCardLoss||0; em.txs = []; em._loaded = false; window.appData.employees.push(em); });
     orderSnap.forEach(d => window.appData.orders.push(d.data()));
-    resSnap.forEach(d => window.appData.resources.push(d.data()));
+    resSnap.forEach(d => { let r = d.data(); r.qty = r.qty||0; r.txs = []; r._loaded = false; window.appData.resources.push(r); });
     toolSnap.forEach(d => window.appData.tools.push(d.data()));
     expSnap.forEach(d => window.appData.expenses.push(d.data()));
     logSnap.forEach(d => window.appData.logs.push(d.data()));
@@ -746,6 +789,14 @@ window.cloudFetch = {
     const docs = snap.docs;
     return { items: docs.map(d => d.data()).reverse(), lastSnap: docs.length ? docs[docs.length - 1] : null, hasMore: docs.length === PAGE_SIZE };
   },
+  resourceMovementsPage: async (rid, cursorSnap) => {
+    let constraints = [orderBy("createdAt", "desc")];
+    if (cursorSnap) constraints.push(startAfter(cursorSnap));
+    constraints.push(limit(PAGE_SIZE));
+    const snap = await getDocs(query(collection(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements"), ...constraints));
+    const docs = snap.docs;
+    return { items: docs.map(d => d.data()).reverse(), lastSnap: docs.length ? docs[docs.length - 1] : null, hasMore: docs.length === PAGE_SIZE };
+  },
   /* unpaginated full fetch — only for the backup export & the integrity/recalc scan, never for on-screen viewing */
   customerTxs: async cid => {
     const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions"));
@@ -761,6 +812,12 @@ window.cloudFetch = {
   },
   employeeTxs: async eid => {
     const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions"));
+    let arr = []; snap.forEach(d => arr.push(d.data()));
+    arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    return arr;
+  },
+  resourceMovements: async rid => {
+    const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements"));
     let arr = []; snap.forEach(d => arr.push(d.data()));
     arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
     return arr;
@@ -791,8 +848,24 @@ window.cloudSave = {
 
   order: async o => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(o.id)), o),
   deleteOrder: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(id))),
-  resource: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), r),
-  deleteResource: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(id))),
+  resource: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), { id: r.id, category: r.category, name: r.name, dims: r.dims, note: r.note, qty: r.qty||0 }),
+  resourceMovement: async (rid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements", String(t.id)), t), // backup import only
+  resourceInfo: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), { id: r.id, category: r.category, name: r.name, dims: r.dims, note: r.note, qty: r.qty||0 }, { merge: true }),
+  deleteResourceDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources", String(id), "movements")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(id))); },
+  saveResourceMovementAtomic: async (rid, mov, appliedDelta) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.set(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements", String(mov.id)), mov);
+    b.update(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid)), { qty: increment(appliedDelta||0) });
+    await b.commit();
+  },
+  deleteResourceMovementAtomic: async (rid, tid, appliedDelta) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.delete(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements", String(tid)));
+    b.update(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid)), { qty: increment(appliedDelta||0) });
+    await b.commit();
+  },
   tool: async t => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "tools", String(t.id)), t),
   deleteTool: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "tools", String(id))),
   expense: async ex => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(ex.id)), ex), // backup import only
@@ -971,6 +1044,7 @@ window.exportBackup = async function () {
       for (let c of window.appData.customers) if(!c._loaded){ c.txs = await window.cloudFetch.customerTxs(c.id); c._loaded = true; }
       for (let s of window.appData.suppliers) if(!s._loaded){ s.txs = await window.cloudFetch.supplierTxs(s.id); s._loaded = true; }
       for (let em of window.appData.employees) if(!em._loaded){ em.txs = await window.cloudFetch.employeeTxs(em.id); em._loaded = true; }
+      for (let r of window.appData.resources) if(!r._loaded){ r.txs = await window.cloudFetch.resourceMovements(r.id); r._loaded = true; }
     }
   }catch(e){ window.showToast("⚠️ تعذر تحميل بعض الحركات، جاري التصدير بما هو متوفر."); }
 
@@ -996,7 +1070,7 @@ window.importBackup = function (event) {
         for (let s of imported.suppliers || []) { await window.cloudSave.supplierInfo(s); for (let t of s.txs || []) await window.cloudSave.supplierTx(s.id, t); }
         for (let em of imported.employees || []) { await window.cloudSave.employeeInfo(em); for (let t of em.txs || []) await window.cloudSave.employeeTx(em.id, t); }
         for (let o of imported.orders || []) await window.cloudSave.order(o);
-        for (let r of imported.resources || []) await window.cloudSave.resource(r);
+        for (let r of imported.resources || []) { await window.cloudSave.resource(r); for (let t of r.txs || []) await window.cloudSave.resourceMovement(r.id, t); }
         for (let t of imported.tools || []) await window.cloudSave.tool(t);
         for (let ex of imported.expenses || []) await window.cloudSave.expense(ex);
         await window.cloudSave.settings();
@@ -1099,10 +1173,19 @@ function goTo(id){
 }
 window.goTo = goTo;
 
+/* jump from the Dashboard's "upcoming orders" list straight into that order's edit form */
+window.goToOrder = function(orderId){
+  goTo('s-orders');
+  editOrder(orderId);
+  const row = document.getElementById('ordersTable').querySelector(`button[onclick="editOrder('${orderId}')"]`);
+  if(row){ const tr = row.closest('tr'); if(tr){ tr.style.outline = '2px solid var(--amber)'; setTimeout(()=>{ tr.style.outline=''; }, 1800); } }
+};
+
 function backToList(type){
   if(type==='cust'){ document.getElementById('custDetailView').classList.add('hidden'); document.getElementById('custListView').classList.remove('hidden'); }
   if(type==='supp'){ document.getElementById('suppDetailView').classList.add('hidden'); document.getElementById('suppListView').classList.remove('hidden'); }
   if(type==='emp'){ document.getElementById('empDetailView').classList.add('hidden'); document.getElementById('empListView').classList.remove('hidden'); }
+  if(type==='res'){ document.getElementById('resDetailView').classList.add('hidden'); document.getElementById('resListView').classList.remove('hidden'); renderResources(); }
   refreshUI();
 }
 window.backToList = backToList;
@@ -1530,7 +1613,7 @@ function renderOrders(){
   document.getElementById('orderCountBadge').textContent = (window.appData.orders||[]).length;
 
   let upcoming = (window.appData.orders||[]).filter(o=>o.status!=='مكتمل').sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||'')).slice(0,6);
-  document.getElementById('dUpcomingOrders').innerHTML = upcoming.length ? upcoming.map(o=>`<tr><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td>${esc(o.dueDate||'-')}</td><td><span class="badge b-status-pending">${esc(o.status)}</span></td></tr>`).join('') : `<tr class="empty-row"><td colspan="4">لا توجد طلبات معلقة 🎉</td></tr>`;
+  document.getElementById('dUpcomingOrders').innerHTML = upcoming.length ? upcoming.map(o=>`<tr class="clickable-row" onclick="goToOrder('${o.id}')"><td class="clickable">${esc(o.customerName)}</td><td>${esc(o.type)}</td><td>${esc(o.dueDate||'-')}</td><td><span class="badge b-status-pending">${esc(o.status)}</span></td></tr>`).join('') : `<tr class="empty-row"><td colspan="4">لا توجد طلبات معلقة 🎉</td></tr>`;
 }
 window.delOrder = function(id){
   let o = window.appData.orders.find(x=>x.id===id);
@@ -1579,56 +1662,166 @@ window.switchResourceTab = function(cat, btn){
   document.getElementById('resourceCategory').value = cat;
   renderResources();
 };
-window.saveResource = function(e){
+window.addResourceItem = function(e){
   e.preventDefault();
   let cat = document.getElementById('resourceCategory').value;
-  let editId = document.getElementById('editResourceId').value;
-  let resObj = { id: editId || uid(), category: cat, name: document.getElementById('resName').value.trim(), dims: document.getElementById('resDims').value.trim()||'-', qty: parseFloat(document.getElementById('resQty').value)||0, note: document.getElementById('resNote').value.trim()||'-' };
-  if(!window.appData.resources) window.appData.resources = [];
-  if(editId){
-    let idx = window.appData.resources.findIndex(r=>r.id===editId);
-    if(idx!==-1) window.appData.resources[idx] = resObj;
-    addLog("تعديل مادة", `تعديل مادة مخزنية: ${resObj.name}`);
-  } else {
-    window.appData.resources.push(resObj);
-    addLog("إضافة مادة", `إضافة مادة مخزنية: ${resObj.name}`);
+  let name = document.getElementById('resName').value.trim();
+  if(!name) return;
+  let initQty = parseFloat(document.getElementById('resInitQty').value)||0;
+  let r = { id: uid(), category: cat, name, dims: document.getElementById('resDims').value.trim()||'-', note: document.getElementById('resNote').value.trim()||'-', qty: 0, txs: [], _loaded: true };
+  window.appData.resources.push(r);
+  addLog("إضافة نوعية", `إضافة نوعية جديدة: ${name}`);
+  if(window.cloudSave) window.cloudSave.resourceInfo(r);
+  if(initQty){
+    let mov = { id: uid(), date: getDate(), type: 'add', qty: initQty, delta: initQty, note: 'الكمية الافتتاحية', createdAt: Date.now() };
+    r.qty = initQty; r.txs.push(mov);
+    if(window.cloudSave) window.cloudSave.saveResourceMovementAtomic(r.id, mov, initQty);
   }
-  if(window.cloudSave) window.cloudSave.resource(resObj);
-  document.getElementById('editResourceId').value = '';
-  document.getElementById('resSubmitBtn').textContent = '➕ إضافة للمخزون';
   e.target.reset();
   document.getElementById('resourceCategory').value = cat;
-  save(); showToast("✅ تم الحفظ.");
+  save(); showToast("✅ تمت إضافة النوعية.");
 };
 function renderResources(){
   let cat = document.getElementById('resourceCategory').value;
-  const catNames = {wood:'🪵 خشب', foam:'🧽 سفنج', fabric:'🧵 قماش', hardware:'🔩 نواعم'};
   let html = '';
   (window.appData.resources||[]).filter(r=>r.category===cat).forEach(r=>{
-    html += `<tr><td><span class="badge b-card">${catNames[r.category]||esc(r.category)}</span></td><td>${esc(r.name)}</td><td>${esc(r.dims)}</td><td class="num">${r.qty}</td><td>${esc(r.note)}</td><td><button class="btn-edit" onclick="editResource('${r.id}')">تعديل</button> <button class="btn btn-danger" onclick="delResource('${r.id}')">حذف</button></td></tr>`;
+    html += `<tr><td class="clickable" onclick="openRes('${r.id}')">${esc(r.name)}</td><td>${esc(r.dims)}</td><td class="num" style="font-weight:800;">${r.qty||0}</td><td>${esc(r.note)}</td><td><button class="btn btn-danger" onclick="delResItem('${r.id}')">حذف</button></td></tr>`;
   });
-  document.getElementById('resourcesTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد مواد مسجلة بهذا القسم</td></tr>`;
+  document.getElementById('resourcesTable').innerHTML = html || `<tr class="empty-row"><td colspan="5">لا توجد نوعيات مسجلة بهذا القسم بعد</td></tr>`;
 }
-window.editResource = function(id){
+window.delResItem = function(id){
   let r = window.appData.resources.find(x=>x.id===id);
   if(!r) return;
-  document.getElementById('editResourceId').value = r.id;
-  document.getElementById('resourceCategory').value = r.category;
-  document.querySelectorAll('#resourceTabs .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.cat===r.category));
-  document.getElementById('resName').value = r.name;
-  document.getElementById('resDims').value = r.dims;
-  document.getElementById('resQty').value = r.qty;
-  document.getElementById('resNote').value = r.note;
-  document.getElementById('resSubmitBtn').textContent = 'تحديث المادة';
-  window.scrollTo({top:0,behavior:'smooth'});
-};
-window.delResource = function(id){
-  askConfirm("حذف المادة", "هل تريد حذف هذه المادة من المخزون؟", ()=>{
+  askConfirm("حذف النوعية", `هل تريد حذف "${r.name}" وكل سجل حركاته نهائياً؟`, ()=>{
+    addLog("حذف نوعية", `حذف نوعية: ${r.name}`);
     window.appData.resources = window.appData.resources.filter(x=>x.id!==id);
-    if(window.cloudSave) window.cloudSave.deleteResource(id);
+    if(window.cloudSave) window.cloudSave.deleteResourceDoc(id);
     save(); showToast("تم الحذف.");
   });
 };
+window.openRes = async function(id, forceReload){
+  let r = window.appData.resources.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('activeResId').value = r.id;
+  document.getElementById('detResTitle').textContent = r.name;
+  document.getElementById('detResQty').textContent = r.qty||0;
+  document.getElementById('resEditName').value = r.name;
+  document.getElementById('resEditDims').value = r.dims;
+  document.getElementById('resEditNote').value = r.note;
+  document.getElementById('resListView').classList.add('hidden');
+  document.getElementById('resDetailView').classList.remove('hidden');
+  cancelResMovEdit();
+  if(!r._loaded || forceReload){
+    document.getElementById('resMovTable').innerHTML = `<tr class="loading-row"><td colspan="6">جاري تحميل السجل<span class="spin"></span></td></tr>`;
+    try{
+      const page = window.cloudFetch ? await window.cloudFetch.resourceMovementsPage(r.id, null) : {items:[],lastSnap:null,hasMore:false};
+      r.txs = page.items; r._cursor = page.lastSnap; r._hasMore = page.hasMore; r._loaded = true;
+    }catch(e){ showToast("تعذر تحميل السجل."); r.txs = r.txs||[]; }
+  }
+  renderResMovs(r);
+};
+window.loadMoreResMovs = async function(rid){
+  let r = window.appData.resources.find(x=>x.id===rid);
+  if(!r || !r._hasMore || !window.cloudFetch) return;
+  try{
+    const page = await window.cloudFetch.resourceMovementsPage(rid, r._cursor);
+    r.txs = [...page.items, ...r.txs];
+    r._cursor = page.lastSnap; r._hasMore = page.hasMore;
+    renderResMovs(r);
+  }catch(e){ showToast("تعذر تحميل المزيد."); }
+};
+window.saveResourceInfo = function(e){
+  e.preventDefault();
+  let r = window.appData.resources.find(x=>x.id===document.getElementById('activeResId').value);
+  if(!r) return;
+  r.name = document.getElementById('resEditName').value.trim() || r.name;
+  r.dims = document.getElementById('resEditDims').value.trim() || '-';
+  r.note = document.getElementById('resEditNote').value.trim() || '-';
+  addLog("تعديل بيانات نوعية", `تعديل بيانات: ${r.name}`);
+  if(window.cloudSave) window.cloudSave.resourceInfo(r);
+  document.getElementById('detResTitle').textContent = r.name;
+  save(); showToast("✅ تم تحديث البيانات.");
+};
+window.saveResourceMovement = function(e){
+  e.preventDefault();
+  let r = window.appData.resources.find(x=>x.id===document.getElementById('activeResId').value);
+  if(!r) return;
+  if(!r.txs) r.txs = [];
+  let editId = document.getElementById('editResMovId').value;
+  let type = document.getElementById('resMovType').value;
+  let qty = parseFloat(document.getElementById('resMovQty').value)||0;
+  let note = document.getElementById('resMovNote').value.trim() || (type==='add'?'إضافة كمية':'صرف / استخدام');
+  let delta = type==='add' ? qty : -qty;
+
+  if(!editId && type==='use' && qty > (r.qty||0)){
+    askConfirm("الكمية غير كافية", `الكمية الحالية ${r.qty||0} بس، وطالب تصرف ${qty}. الرصيد رح يصير سالب. بدك تكمل؟`, ()=>{
+      commitResourceMovement(r, editId, type, qty, note, delta);
+    });
+    return;
+  }
+  commitResourceMovement(r, editId, type, qty, note, delta);
+};
+function commitResourceMovement(r, editId, type, qty, note, delta){
+  let txId = editId || uid();
+  let mov = { id: txId, date: getDate(), type, qty, delta, note, createdAt: Date.now() };
+  let appliedDelta = delta;
+  if(editId){
+    let idx = r.txs.findIndex(t=>t.id===editId);
+    if(idx!==-1){ mov.createdAt = r.txs[idx].createdAt; appliedDelta = delta - (r.txs[idx].delta||0); r.txs[idx] = mov; }
+    addLog("تعديل حركة مخزون", `تعديل حركة على ${r.name}`);
+  } else {
+    r.txs.push(mov);
+    addLog(type==='add'?"إضافة كمية":"صرف كمية", `${r.name}: ${type==='add'?'+':'-'}${qty}`);
+  }
+  r.qty = (r.qty||0) + appliedDelta;
+  document.getElementById('detResQty').textContent = r.qty;
+  if(window.cloudSave) window.cloudSave.saveResourceMovementAtomic(r.id, mov, appliedDelta);
+  save(); openRes(r.id, true); showToast("✅ تم الحفظ.");
+}
+window.editResMov = function(rid, tid){
+  let r = window.appData.resources.find(x=>x.id===rid);
+  let t = r.txs.find(x=>x.id===tid);
+  if(!t) return;
+  document.getElementById('editResMovId').value = t.id;
+  document.getElementById('resMovType').value = t.type;
+  document.getElementById('resMovQty').value = t.qty;
+  document.getElementById('resMovNote').value = t.note;
+  document.getElementById('resMovSubmitBtn').textContent = 'تحديث الحركة';
+  document.getElementById('cancelResMovEditBtn').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.cancelResMovEdit = function(){
+  document.getElementById('resActionForm').reset();
+  document.getElementById('editResMovId').value = '';
+  document.getElementById('resMovType').value = 'add';
+  document.getElementById('resMovSubmitBtn').textContent = '💾 حفظ الحركة';
+  document.getElementById('cancelResMovEditBtn').classList.add('hidden');
+};
+window.delResMov = function(rid, tid){
+  askConfirm("حذف الحركة", "هل تريد حذف هذه الحركة نهائياً؟", ()=>{
+    let r = window.appData.resources.find(x=>x.id===rid);
+    let t = r.txs.find(x=>x.id===tid);
+    if(!t) return;
+    let appliedDelta = -(t.delta||0);
+    r.txs = r.txs.filter(x=>x.id!==tid);
+    r.qty = (r.qty||0) + appliedDelta;
+    document.getElementById('detResQty').textContent = r.qty;
+    addLog("حذف حركة مخزون", `حذف حركة من ${r.name}`);
+    if(window.cloudSave) window.cloudSave.deleteResourceMovementAtomic(rid, tid, appliedDelta);
+    save(); openRes(rid, true); showToast("تم الحذف.");
+  });
+};
+function renderResMovs(r){
+  let txs = r.txs||[];
+  let bals = computeBalancesAsc(txs, r.qty||0, t => t.delta||0);
+  let html = '';
+  if(r._hasMore) html += `<tr><td colspan="6" style="text-align:center;padding:10px;"><button class="btn btn-ghost btn-sm" onclick="loadMoreResMovs('${r.id}')">⬆️ تحميل حركات أقدم</button></td></tr>`;
+  txs.forEach((t,i)=>{
+    let bal = bals[i];
+    html += `<tr><td>${esc(t.date)}</td><td><span class="badge ${t.type==='add'?'b-cash':'b-card'}">${t.type==='add'?'➕ إضافة':'➖ صرف'}</span></td><td class="num">${t.qty}</td><td>${esc(t.note)}</td><td class="num" style="font-weight:800;">${bal}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="editResMov('${r.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delResMov('${r.id}','${t.id}')">حذف</button></td></tr>`;
+  });
+  document.getElementById('resMovTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد حركات مسجلة بعد</td></tr>`;
+}
 
 /* ---------- TOOLS ---------- */
 window.addTool = function(e){
