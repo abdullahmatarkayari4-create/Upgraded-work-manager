@@ -632,7 +632,7 @@ tbody tr:hover{background:#fbf7f0;}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, getDocs, deleteDoc, writeBatch, query, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAil3oUaJQMW8ErUVFdLaugx_gbXVlPM-E",
@@ -650,6 +650,8 @@ const dbCloud = getFirestore(app);
 let currentUser = null;
 const ZERO_STATS = { totalSales:0, totalCustPaid:0, totalPurchases:0, totalSuppPaidNet:0, totalWages:0, totalExpenses:0, totalCardLoss:0 };
 const DEFAULT_SETTINGS = { title: "ورشة الأثاث والتنجيد", phone: "+905000000000", address: "تركيا" };
+const PAGE_SIZE = 30;      // invoices per page inside an account (customer/supplier/employee)
+const LOGS_LIMIT = 150;    // most recent audit-log entries kept loaded
 
 window.appData = { customers: [], suppliers: [], employees: [], orders: [], resources: [], tools: [], expenses: [], logs: [], invoiceSettings: {...DEFAULT_SETTINGS}, stats: {...ZERO_STATS} };
 
@@ -693,7 +695,7 @@ async function loadCloudData() {
       getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources")),
       getDocs(collection(dbCloud, "workshops", currentUser.uid, "tools")),
       getDocs(collection(dbCloud, "workshops", currentUser.uid, "expenses")),
-      getDocs(collection(dbCloud, "workshops", currentUser.uid, "logs"))
+      getDocs(query(collection(dbCloud, "workshops", currentUser.uid, "logs"), orderBy("createdAt", "desc"), limit(LOGS_LIMIT)))
     ]);
     // customers/suppliers/employees: load lightweight doc only. Transactions load lazily when the account is opened.
     custSnap.forEach(d => { let c = d.data(); c.totalBill = c.totalBill||0; c.totalPaid = c.totalPaid||0; c.txs = []; c._loaded = false; window.appData.customers.push(c); });
@@ -716,8 +718,35 @@ async function loadCloudData() {
   }
 }
 
-/* ---------- lazy fetch: only when an account is actually opened ---------- */
+/* ---------- lazy fetch: only when an account is actually opened ----------
+   Paginated (PAGE_SIZE at a time) so a single account with thousands of
+   invoices after years of use never loads more than one small page. ---------- */
 window.cloudFetch = {
+  customerTxsPage: async (cid, cursorSnap) => {
+    let constraints = [orderBy("createdAt", "desc")];
+    if (cursorSnap) constraints.push(startAfter(cursorSnap));
+    constraints.push(limit(PAGE_SIZE));
+    const snap = await getDocs(query(collection(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions"), ...constraints));
+    const docs = snap.docs;
+    return { items: docs.map(d => d.data()).reverse(), lastSnap: docs.length ? docs[docs.length - 1] : null, hasMore: docs.length === PAGE_SIZE };
+  },
+  supplierTxsPage: async (sid, cursorSnap) => {
+    let constraints = [orderBy("createdAt", "desc")];
+    if (cursorSnap) constraints.push(startAfter(cursorSnap));
+    constraints.push(limit(PAGE_SIZE));
+    const snap = await getDocs(query(collection(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions"), ...constraints));
+    const docs = snap.docs;
+    return { items: docs.map(d => d.data()).reverse(), lastSnap: docs.length ? docs[docs.length - 1] : null, hasMore: docs.length === PAGE_SIZE };
+  },
+  employeeTxsPage: async (eid, cursorSnap) => {
+    let constraints = [orderBy("createdAt", "desc")];
+    if (cursorSnap) constraints.push(startAfter(cursorSnap));
+    constraints.push(limit(PAGE_SIZE));
+    const snap = await getDocs(query(collection(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions"), ...constraints));
+    const docs = snap.docs;
+    return { items: docs.map(d => d.data()).reverse(), lastSnap: docs.length ? docs[docs.length - 1] : null, hasMore: docs.length === PAGE_SIZE };
+  },
+  /* unpaginated full fetch — only for the backup export & the integrity/recalc scan, never for on-screen viewing */
   customerTxs: async cid => {
     const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions"));
     let arr = []; snap.forEach(d => arr.push(d.data()));
@@ -746,22 +775,19 @@ function statsUpdatePayload(delta){
 
 window.cloudSave = {
   customerInfo: async c => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(c.id)), { id: c.id, name: c.name, phone: c.phone, totalBill: c.totalBill||0, totalPaid: c.totalPaid||0 }),
-  customerTx: async (cid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(t.id)), t),
+  customerTx: async (cid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(t.id)), t), // used only by backup import — stats rebuilt afterward
   deleteCustomerTx: async (cid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(tid))),
   deleteCustomerDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(id))); },
-  applyCustomerDelta: async (cid, deltaTotal, deltaPaid) => { if(!currentUser || (!deltaTotal && !deltaPaid)) return; await updateDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid)), { totalBill: increment(deltaTotal||0), totalPaid: increment(deltaPaid||0) }); },
 
   supplierInfo: async s => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { id: s.id, name: s.name, phone: s.phone, totalNet: s.totalNet||0, totalPaidNet: s.totalPaidNet||0, totalCardLoss: s.totalCardLoss||0 }),
-  supplierTx: async (sid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(t.id)), t),
+  supplierTx: async (sid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(t.id)), t), // backup import only
   deleteSupplierTx: async (sid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(tid))),
   deleteSupplierDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(id))); },
-  applySupplierDelta: async (sid, deltaNet, deltaPaidNet, deltaCardLoss) => { if(!currentUser) return; await updateDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid)), { totalNet: increment(deltaNet||0), totalPaidNet: increment(deltaPaidNet||0), totalCardLoss: increment(deltaCardLoss||0) }); },
 
   employeeInfo: async em => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(em.id)), { id: em.id, name: em.name, phone: em.phone, role: em.role, totalWages: em.totalWages||0, totalCardLoss: em.totalCardLoss||0 }),
-  employeeTx: async (eid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(t.id)), t),
+  employeeTx: async (eid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(t.id)), t), // backup import only
   deleteEmployeeTx: async (eid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(tid))),
   deleteEmployeeDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(id))); },
-  applyEmployeeDelta: async (eid, deltaAmount, deltaCardLoss) => { if(!currentUser) return; await updateDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid)), { totalWages: increment(deltaAmount||0), totalCardLoss: increment(deltaCardLoss||0) }); },
 
   order: async o => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(o.id)), o),
   deleteOrder: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(id))),
@@ -769,13 +795,97 @@ window.cloudSave = {
   deleteResource: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(id))),
   tool: async t => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "tools", String(t.id)), t),
   deleteTool: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "tools", String(id))),
-  expense: async ex => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(ex.id)), ex),
-  deleteExpense: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(id))),
+  expense: async ex => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(ex.id)), ex), // backup import only
   log: async l => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "logs", String(l.id)), l),
   settings: async () => currentUser && setDoc(rootRef(), { invoiceSettings: window.appData.invoiceSettings }, { merge: true }),
+  applyStatsDelta: async delta => { if(!currentUser) return; const payload = statsUpdatePayload(delta); if(Object.keys(payload).length) await updateDoc(rootRef(), payload); },
 
-  /* central place every mutation calls to keep the fast Dashboard numbers correct */
-  applyStatsDelta: async delta => { if(!currentUser) return; const payload = statsUpdatePayload(delta); if(Object.keys(payload).length) await updateDoc(rootRef(), payload); }
+  /* ---------- ATOMIC operations ----------
+     Every action that touches both an invoice AND an aggregate number (customer/
+     supplier/employee totals + the global stats doc) goes through a single
+     Firestore batch: either everything commits together, or nothing does.
+     This is what point #1 from the review asked for — no more "invoice saved
+     but stats didn't update" if the connection drops mid-operation. */
+  saveCustomerTxAtomic: async (cid, tx, deltaTotal, deltaPaid) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.set(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(tx.id)), tx);
+    if(deltaTotal || deltaPaid) b.update(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid)), { totalBill: increment(deltaTotal||0), totalPaid: increment(deltaPaid||0) });
+    const sp = statsUpdatePayload({ totalSales: deltaTotal, totalCustPaid: deltaPaid });
+    if(Object.keys(sp).length) b.update(rootRef(), sp);
+    await b.commit();
+  },
+  deleteCustomerTxAtomic: async (cid, tid, deltaTotal, deltaPaid) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.delete(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(tid)));
+    b.update(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid)), { totalBill: increment(deltaTotal||0), totalPaid: increment(deltaPaid||0) });
+    const sp = statsUpdatePayload({ totalSales: deltaTotal, totalCustPaid: deltaPaid });
+    if(Object.keys(sp).length) b.update(rootRef(), sp);
+    await b.commit();
+  },
+  saveSupplierTxAtomic: async (sid, tx, deltaNet, deltaPaidNet, deltaCardLoss) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.set(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(tx.id)), tx);
+    b.update(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid)), { totalNet: increment(deltaNet||0), totalPaidNet: increment(deltaPaidNet||0), totalCardLoss: increment(deltaCardLoss||0) });
+    const sp = statsUpdatePayload({ totalPurchases: deltaNet, totalSuppPaidNet: deltaPaidNet, totalCardLoss: deltaCardLoss });
+    if(Object.keys(sp).length) b.update(rootRef(), sp);
+    await b.commit();
+  },
+  deleteSupplierTxAtomic: async (sid, tid, deltaNet, deltaPaidNet, deltaCardLoss) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.delete(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(tid)));
+    b.update(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid)), { totalNet: increment(deltaNet||0), totalPaidNet: increment(deltaPaidNet||0), totalCardLoss: increment(deltaCardLoss||0) });
+    const sp = statsUpdatePayload({ totalPurchases: deltaNet, totalSuppPaidNet: deltaPaidNet, totalCardLoss: deltaCardLoss });
+    if(Object.keys(sp).length) b.update(rootRef(), sp);
+    await b.commit();
+  },
+  saveEmployeeTxAtomic: async (eid, tx, deltaAmount, deltaCardLoss) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.set(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(tx.id)), tx);
+    b.update(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid)), { totalWages: increment(deltaAmount||0), totalCardLoss: increment(deltaCardLoss||0) });
+    const sp = statsUpdatePayload({ totalWages: deltaAmount, totalCardLoss: deltaCardLoss });
+    if(Object.keys(sp).length) b.update(rootRef(), sp);
+    await b.commit();
+  },
+  deleteEmployeeTxAtomic: async (eid, tid, deltaAmount, deltaCardLoss) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.delete(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(tid)));
+    b.update(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid)), { totalWages: increment(deltaAmount||0), totalCardLoss: increment(deltaCardLoss||0) });
+    const sp = statsUpdatePayload({ totalWages: deltaAmount, totalCardLoss: deltaCardLoss });
+    if(Object.keys(sp).length) b.update(rootRef(), sp);
+    await b.commit();
+  },
+  saveExpenseAtomic: async ex => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.set(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(ex.id)), ex);
+    const sp = statsUpdatePayload({ totalExpenses: ex.amount, totalCardLoss: ex.cardLoss });
+    if(Object.keys(sp).length) b.update(rootRef(), sp);
+    await b.commit();
+  },
+  deleteExpenseAtomic: async (id, amount, cardLoss) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.delete(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(id)));
+    const sp = statsUpdatePayload({ totalExpenses: -(amount||0), totalCardLoss: -(cardLoss||0) });
+    if(Object.keys(sp).length) b.update(rootRef(), sp);
+    await b.commit();
+  },
+  deliverOrderAtomic: async (order, customerId, tx) => {
+    if(!currentUser) return;
+    const b = writeBatch(dbCloud);
+    b.set(doc(dbCloud, "workshops", currentUser.uid, "orders", String(order.id)), order);
+    b.set(doc(dbCloud, "workshops", currentUser.uid, "customers", String(customerId), "transactions", String(tx.id)), tx);
+    b.update(doc(dbCloud, "workshops", currentUser.uid, "customers", String(customerId)), { totalBill: increment(tx.total||0), totalPaid: increment(tx.paid||0) });
+    const sp = statsUpdatePayload({ totalSales: tx.total, totalCustPaid: tx.paid });
+    if(Object.keys(sp).length) b.update(rootRef(), sp);
+    await b.commit();
+  }
 };
 
 /* ---------- recalculation / integrity check ----------
@@ -923,6 +1033,14 @@ onAuthStateChanged(auth, async user => {
 function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function uid(){ return (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2); }
 function money(n){ return (Number(n)||0).toLocaleString('en-US', {maximumFractionDigits:2}) + ' ₺'; }
+/* Correct running balance for a PARTIAL (paginated) list of transactions:
+   works backward from the known-accurate current total (aggregate field),
+   so it's exact even when only the most recent page is loaded in memory. */
+function computeBalancesAsc(ascTxs, currentRemaining, netFn){
+  let n = ascTxs.length, bal = new Array(n), running = currentRemaining;
+  for(let i=n-1;i>=0;i--){ bal[i] = running; running -= netFn(ascTxs[i]); }
+  return bal;
+}
 function getDate(){ return new Date().toISOString().split('T')[0]; }
 function getDateTimeNow(){ let n = new Date(); return n.toISOString().split('T')[0] + ' ' + n.toTimeString().split(' ')[0]; }
 window.getDate = getDate;
@@ -1052,7 +1170,7 @@ window.delCust = function(id){
     save(); showToast("تم حذف الزبون.");
   });
 };
-window.openCust = async function(id){
+window.openCust = async function(id, forceReload){
   let c = window.appData.customers.find(x=>x.id===id);
   if(!c) return;
   document.getElementById('activeCustId').value = c.id;
@@ -1060,14 +1178,24 @@ window.openCust = async function(id){
   document.getElementById('custListView').classList.add('hidden');
   document.getElementById('custDetailView').classList.remove('hidden');
   cancelCustEdit();
-  if(!c._loaded){
-    document.getElementById('customerTxTable').innerHTML = `<tr class="loading-row"><td colspan="7">جاري تحميل حركات الزبون<span class="spin"></span></td></tr>`;
+  if(!c._loaded || forceReload){
+    document.getElementById('customerTxTable').innerHTML = `<tr class="loading-row"><td colspan="7">جاري تحميل الفواتير<span class="spin"></span></td></tr>`;
     try{
-      c.txs = window.cloudFetch ? await window.cloudFetch.customerTxs(c.id) : [];
-      c._loaded = true;
-    }catch(e){ showToast("تعذر تحميل الحركات."); }
+      const page = window.cloudFetch ? await window.cloudFetch.customerTxsPage(c.id, null) : {items:[],lastSnap:null,hasMore:false};
+      c.txs = page.items; c._cursor = page.lastSnap; c._hasMore = page.hasMore; c._loaded = true;
+    }catch(e){ showToast("تعذر تحميل الفواتير."); c.txs = c.txs||[]; }
   }
   renderCustTxs(c);
+};
+window.loadMoreCustTxs = async function(cid){
+  let c = window.appData.customers.find(x=>x.id===cid);
+  if(!c || !c._hasMore || !window.cloudFetch) return;
+  try{
+    const page = await window.cloudFetch.customerTxsPage(cid, c._cursor);
+    c.txs = [...page.items, ...c.txs];
+    c._cursor = page.lastSnap; c._hasMore = page.hasMore;
+    renderCustTxs(c);
+  }catch(e){ showToast("تعذر تحميل المزيد."); }
 };
 window.toggleCustFormMode = function(){
   let type = document.getElementById('custTxType').value;
@@ -1100,12 +1228,8 @@ window.saveCustomerAction = function(e){
   c.totalPaid = (c.totalPaid||0) + deltaPaid;
   window.appData.stats.totalSales += deltaTotal;
   window.appData.stats.totalCustPaid += deltaPaid;
-  if(window.cloudSave){
-    window.cloudSave.customerTx(c.id, tx);
-    window.cloudSave.applyCustomerDelta(c.id, deltaTotal, deltaPaid);
-    window.cloudSave.applyStatsDelta({ totalSales: deltaTotal, totalCustPaid: deltaPaid });
-  }
-  save(); openCust(c.id); showToast("✅ تم الحفظ.");
+  if(window.cloudSave) window.cloudSave.saveCustomerTxAtomic(c.id, tx, deltaTotal, deltaPaid);
+  save(); openCust(c.id, true); showToast("✅ تم الحفظ.");
 };
 window.editCustTx = function(cid, tid){
   let c = window.appData.customers.find(x=>x.id===cid);
@@ -1131,9 +1255,12 @@ window.cancelCustEdit = function(){
   document.getElementById('cancelCustEditBtn').classList.add('hidden');
 };
 function renderCustTxs(c){
-  let html = '', bal = 0;
-  (c.txs||[]).forEach(t=>{
-    bal += (t.total - t.paid);
+  let txs = c.txs||[];
+  let bals = computeBalancesAsc(txs, (c.totalBill||0)-(c.totalPaid||0), t => (t.total||0)-(t.paid||0));
+  let html = '';
+  if(c._hasMore) html += `<tr><td colspan="7" style="text-align:center;padding:10px;"><button class="btn btn-ghost btn-sm" onclick="loadMoreCustTxs('${c.id}')">⬆️ تحميل فواتير أقدم</button></td></tr>`;
+  txs.forEach((t,i)=>{
+    let bal = bals[i];
     html += `<tr><td>${esc(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${t.total?money(t.total):'-'}</td><td class="num">${t.paid?money(t.paid):'-'}</td><td><span class="badge ${t.method==='كاش'?'b-cash':'b-card'}">${esc(t.method)}</span></td><td class="num" style="font-weight:800;color:${bal>0?'var(--bad)':'inherit'};">${money(bal)}</td><td style="white-space:nowrap;"><button class="btn btn-print" onclick='printSingleTx(${JSON.stringify(c.name)}, ${JSON.stringify(t.date)}, ${JSON.stringify(t.desc)}, ${t.total}, ${t.paid}, ${JSON.stringify(t.method)}, ${bal})'>🖨️</button> <button class="btn-edit" onclick="editCustTx('${c.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delCustTx('${c.id}','${t.id}')">حذف</button></td></tr>`;
   });
   document.getElementById('customerTxTable').innerHTML = html || `<tr class="empty-row"><td colspan="7">لا توجد حركات مسجلة بعد</td></tr>`;
@@ -1150,12 +1277,8 @@ window.delCustTx = function(cid, tid){
     window.appData.stats.totalSales += deltaTotal;
     window.appData.stats.totalCustPaid += deltaPaid;
     addLog("حذف فاتورة زبون", `حذف حركة من حساب ${c.name}`);
-    if(window.cloudSave){
-      window.cloudSave.deleteCustomerTx(cid, tid);
-      window.cloudSave.applyCustomerDelta(cid, deltaTotal, deltaPaid);
-      window.cloudSave.applyStatsDelta({ totalSales: deltaTotal, totalCustPaid: deltaPaid });
-    }
-    save(); openCust(cid); showToast("تم الحذف.");
+    if(window.cloudSave) window.cloudSave.deleteCustomerTxAtomic(cid, tid, deltaTotal, deltaPaid);
+    save(); openCust(cid, true); showToast("تم الحذف.");
   });
 };
 
@@ -1192,7 +1315,7 @@ window.delSupp = function(id){
     save(); showToast("تم حذف المورد.");
   });
 };
-window.openSupp = async function(id){
+window.openSupp = async function(id, forceReload){
   let s = window.appData.suppliers.find(x=>x.id===id);
   if(!s) return;
   document.getElementById('activeSuppId').value = s.id;
@@ -1200,14 +1323,24 @@ window.openSupp = async function(id){
   document.getElementById('suppListView').classList.add('hidden');
   document.getElementById('suppDetailView').classList.remove('hidden');
   cancelSuppEdit();
-  if(!s._loaded){
-    document.getElementById('supplierTxTable').innerHTML = `<tr class="loading-row"><td colspan="8">جاري تحميل حركات المورد<span class="spin"></span></td></tr>`;
+  if(!s._loaded || forceReload){
+    document.getElementById('supplierTxTable').innerHTML = `<tr class="loading-row"><td colspan="8">جاري تحميل الفواتير<span class="spin"></span></td></tr>`;
     try{
-      s.txs = window.cloudFetch ? await window.cloudFetch.supplierTxs(s.id) : [];
-      s._loaded = true;
-    }catch(e){ showToast("تعذر تحميل الحركات."); }
+      const page = window.cloudFetch ? await window.cloudFetch.supplierTxsPage(s.id, null) : {items:[],lastSnap:null,hasMore:false};
+      s.txs = page.items; s._cursor = page.lastSnap; s._hasMore = page.hasMore; s._loaded = true;
+    }catch(e){ showToast("تعذر تحميل الفواتير."); s.txs = s.txs||[]; }
   }
   renderSuppTxs(s);
+};
+window.loadMoreSuppTxs = async function(sid){
+  let s = window.appData.suppliers.find(x=>x.id===sid);
+  if(!s || !s._hasMore || !window.cloudFetch) return;
+  try{
+    const page = await window.cloudFetch.supplierTxsPage(sid, s._cursor);
+    s.txs = [...page.items, ...s.txs];
+    s._cursor = page.lastSnap; s._hasMore = page.hasMore;
+    renderSuppTxs(s);
+  }catch(e){ showToast("تعذر تحميل المزيد."); }
 };
 window.toggleSuppFormMode = function(){
   let type = document.getElementById('suppTxType').value;
@@ -1258,12 +1391,8 @@ window.saveSupplierAction = function(e){
   window.appData.stats.totalPurchases += deltaNet;
   window.appData.stats.totalSuppPaidNet += deltaPaidNet;
   window.appData.stats.totalCardLoss += deltaCardLoss;
-  if(window.cloudSave){
-    window.cloudSave.supplierTx(s.id, tx);
-    window.cloudSave.applySupplierDelta(s.id, deltaNet, deltaPaidNet, deltaCardLoss);
-    window.cloudSave.applyStatsDelta({ totalPurchases: deltaNet, totalSuppPaidNet: deltaPaidNet, totalCardLoss: deltaCardLoss });
-  }
-  save(); openSupp(s.id); showToast("✅ تم الحفظ.");
+  if(window.cloudSave) window.cloudSave.saveSupplierTxAtomic(s.id, tx, deltaNet, deltaPaidNet, deltaCardLoss);
+  save(); openSupp(s.id, true); showToast("✅ تم الحفظ.");
 };
 window.editSuppTx = function(sid, tid){
   let s = window.appData.suppliers.find(x=>x.id===sid);
@@ -1289,10 +1418,12 @@ window.cancelSuppEdit = function(){
   document.getElementById('cancelSuppEditBtn').classList.add('hidden');
 };
 function renderSuppTxs(s){
-  let html = '', bal = 0;
-  (s.txs||[]).forEach(t=>{
-    let totNet = t.supplierTotalNet||0, paidNet = t.supplierPaidNet||0;
-    bal += (totNet - paidNet);
+  let txs = s.txs||[];
+  let bals = computeBalancesAsc(txs, (s.totalNet||0)-(s.totalPaidNet||0), t => (t.supplierTotalNet||0)-(t.supplierPaidNet||0));
+  let html = '';
+  if(s._hasMore) html += `<tr><td colspan="8" style="text-align:center;padding:10px;"><button class="btn btn-ghost btn-sm" onclick="loadMoreSuppTxs('${s.id}')">⬆️ تحميل فواتير أقدم</button></td></tr>`;
+  txs.forEach((t,i)=>{
+    let totNet = t.supplierTotalNet||0, paidNet = t.supplierPaidNet||0, bal = bals[i];
     html += `<tr><td>${esc(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${totNet?money(totNet):'-'}</td><td class="num">${paidNet?money(paidNet):'0'}</td><td><span class="badge ${t.method==='كاش'?'b-cash':'b-card'}">${esc(t.method)}</span></td><td class="num" style="color:var(--warn);">${t.cardLoss?money(t.cardLoss):'0'}</td><td class="num" style="font-weight:800;color:${bal>0?'var(--bad)':'inherit'};">${money(bal)}</td><td style="white-space:nowrap;"><button class="btn btn-print" onclick='printSingleTx(${JSON.stringify(s.name)}, ${JSON.stringify(t.date)}, ${JSON.stringify(t.desc)}, ${totNet}, ${paidNet}, ${JSON.stringify(t.method)}, ${bal})'>🖨️</button> <button class="btn-edit" onclick="editSuppTx('${s.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delSuppTx('${s.id}','${t.id}')">حذف</button></td></tr>`;
   });
   document.getElementById('supplierTxTable').innerHTML = html || `<tr class="empty-row"><td colspan="8">لا توجد حركات مسجلة بعد</td></tr>`;
@@ -1311,12 +1442,8 @@ window.delSuppTx = function(sid, tid){
     window.appData.stats.totalSuppPaidNet += deltaPaidNet;
     window.appData.stats.totalCardLoss += deltaCardLoss;
     addLog("حذف فاتورة مورد", `حذف حركة من ${s.name}`);
-    if(window.cloudSave){
-      window.cloudSave.deleteSupplierTx(sid, tid);
-      window.cloudSave.applySupplierDelta(sid, deltaNet, deltaPaidNet, deltaCardLoss);
-      window.cloudSave.applyStatsDelta({ totalPurchases: deltaNet, totalSuppPaidNet: deltaPaidNet, totalCardLoss: deltaCardLoss });
-    }
-    save(); openSupp(sid); showToast("تم الحذف.");
+    if(window.cloudSave) window.cloudSave.deleteSupplierTxAtomic(sid, tid, deltaNet, deltaPaidNet, deltaCardLoss);
+    save(); openSupp(sid, true); showToast("تم الحذف.");
   });
 };
 
@@ -1441,12 +1568,7 @@ window.confirmDelivery = function(e){
   window.appData.stats.totalSales += tx.total;
   window.appData.stats.totalCustPaid += tx.paid;
   addLog("تسليم طلب", `تسليم طلب وإصدار فاتورة للزبون ${customer.name}`);
-  if(window.cloudSave){
-    window.cloudSave.order(order);
-    window.cloudSave.customerTx(customer.id, tx);
-    window.cloudSave.applyCustomerDelta(customer.id, tx.total, tx.paid);
-    window.cloudSave.applyStatsDelta({ totalSales: tx.total, totalCustPaid: tx.paid });
-  }
+  if(window.cloudSave) window.cloudSave.deliverOrderAtomic(order, customer.id, tx);
   save(); closeModal('deliverModal'); showToast("✅ تم تسليم الطلب وإصدار الفاتورة.");
 };
 
@@ -1586,7 +1708,7 @@ window.delEmp = function(id){
     save(); showToast("تم حذف الموظف.");
   });
 };
-window.openEmp = async function(id){
+window.openEmp = async function(id, forceReload){
   let em = window.appData.employees.find(x=>x.id===id);
   if(!em) return;
   document.getElementById('activeEmpId').value = em.id;
@@ -1594,14 +1716,24 @@ window.openEmp = async function(id){
   document.getElementById('empListView').classList.add('hidden');
   document.getElementById('empDetailView').classList.remove('hidden');
   cancelEmpEdit();
-  if(!em._loaded){
+  if(!em._loaded || forceReload){
     document.getElementById('employeeTxTable').innerHTML = `<tr class="loading-row"><td colspan="6">جاري تحميل سجل الأجور<span class="spin"></span></td></tr>`;
     try{
-      em.txs = window.cloudFetch ? await window.cloudFetch.employeeTxs(em.id) : [];
-      em._loaded = true;
-    }catch(e){ showToast("تعذر تحميل السجل."); }
+      const page = window.cloudFetch ? await window.cloudFetch.employeeTxsPage(em.id, null) : {items:[],lastSnap:null,hasMore:false};
+      em.txs = page.items; em._cursor = page.lastSnap; em._hasMore = page.hasMore; em._loaded = true;
+    }catch(e){ showToast("تعذر تحميل السجل."); em.txs = em.txs||[]; }
   }
   renderEmpTxs(em);
+};
+window.loadMoreEmpTxs = async function(eid){
+  let em = window.appData.employees.find(x=>x.id===eid);
+  if(!em || !em._hasMore || !window.cloudFetch) return;
+  try{
+    const page = await window.cloudFetch.employeeTxsPage(eid, em._cursor);
+    em.txs = [...page.items, ...em.txs];
+    em._cursor = page.lastSnap; em._hasMore = page.hasMore;
+    renderEmpTxs(em);
+  }catch(e){ showToast("تعذر تحميل المزيد."); }
 };
 window.saveEmployeeAction = function(e){
   e.preventDefault();
@@ -1632,12 +1764,8 @@ window.saveEmployeeAction = function(e){
   em.totalCardLoss = (em.totalCardLoss||0) + deltaCardLoss;
   window.appData.stats.totalWages += deltaAmount;
   window.appData.stats.totalCardLoss += deltaCardLoss;
-  if(window.cloudSave){
-    window.cloudSave.employeeTx(em.id, tx);
-    window.cloudSave.applyEmployeeDelta(em.id, deltaAmount, deltaCardLoss);
-    window.cloudSave.applyStatsDelta({ totalWages: deltaAmount, totalCardLoss: deltaCardLoss });
-  }
-  save(); openEmp(em.id); showToast("✅ تم الحفظ.");
+  if(window.cloudSave) window.cloudSave.saveEmployeeTxAtomic(em.id, tx, deltaAmount, deltaCardLoss);
+  save(); openEmp(em.id, true); showToast("✅ تم الحفظ.");
 };
 window.editEmpTx = function(eid, tid){
   let em = window.appData.employees.find(x=>x.id===eid);
@@ -1659,6 +1787,7 @@ window.cancelEmpEdit = function(){
 };
 function renderEmpTxs(em){
   let html='';
+  if(em._hasMore) html += `<tr><td colspan="6" style="text-align:center;padding:10px;"><button class="btn btn-ghost btn-sm" onclick="loadMoreEmpTxs('${em.id}')">⬆️ تحميل سجلات أقدم</button></td></tr>`;
   (em.txs||[]).forEach(t=>{
     html += `<tr><td>${esc(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${money(t.amount)}</td><td><span class="badge ${t.method==='كاش'?'b-cash':'b-card'}">${esc(t.method)}</span></td><td class="num" style="color:var(--warn);">${t.cardLoss?money(t.cardLoss):'0'}</td><td><button class="btn-edit" onclick="editEmpTx('${em.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delEmpTx('${em.id}','${t.id}')">حذف</button></td></tr>`;
   });
@@ -1676,12 +1805,8 @@ window.delEmpTx = function(eid, tid){
     window.appData.stats.totalWages += deltaAmount;
     window.appData.stats.totalCardLoss += deltaCardLoss;
     addLog("حذف أجر", `حذف حركة أجر من ${em.name}`);
-    if(window.cloudSave){
-      window.cloudSave.deleteEmployeeTx(eid, tid);
-      window.cloudSave.applyEmployeeDelta(eid, deltaAmount, deltaCardLoss);
-      window.cloudSave.applyStatsDelta({ totalWages: deltaAmount, totalCardLoss: deltaCardLoss });
-    }
-    save(); openEmp(eid); showToast("تم الحذف.");
+    if(window.cloudSave) window.cloudSave.deleteEmployeeTxAtomic(eid, tid, deltaAmount, deltaCardLoss);
+    save(); openEmp(eid, true); showToast("تم الحذف.");
   });
 };
 
@@ -1697,10 +1822,7 @@ window.addExpense = function(e){
   window.appData.stats.totalExpenses += exp.amount;
   window.appData.stats.totalCardLoss += exp.cardLoss;
   addLog("مصروف", `تسجيل مصروف: ${title}`);
-  if(window.cloudSave){
-    window.cloudSave.expense(exp);
-    window.cloudSave.applyStatsDelta({ totalExpenses: exp.amount, totalCardLoss: exp.cardLoss });
-  }
+  if(window.cloudSave) window.cloudSave.saveExpenseAtomic(exp);
   save(); e.target.reset(); showToast("✅ تم تسجيل المصروف.");
 };
 function renderExpenses(){
@@ -1719,10 +1841,7 @@ window.delExp = function(id){
     window.appData.expenses = window.appData.expenses.filter(e=>e.id!==id);
     window.appData.stats.totalExpenses -= (ex.amount||0);
     window.appData.stats.totalCardLoss -= (ex.cardLoss||0);
-    if(window.cloudSave){
-      window.cloudSave.deleteExpense(id);
-      window.cloudSave.applyStatsDelta({ totalExpenses: -(ex.amount||0), totalCardLoss: -(ex.cardLoss||0) });
-    }
+    if(window.cloudSave) window.cloudSave.deleteExpenseAtomic(id, ex.amount, ex.cardLoss);
     save(); showToast("تم الحذف.");
   });
 };
