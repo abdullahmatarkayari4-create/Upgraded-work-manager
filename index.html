@@ -257,6 +257,7 @@ tbody tr:hover{background:#fbf7f0;}
         <div class="stat-card accent-bad"><div class="lbl">ديون على الزبائن</div><div class="amt num" id="dCustDebt">0 ₺</div></div>
         <div class="stat-card accent-bad"><div class="lbl">ديون للموردين</div><div class="amt num" id="dSuppDebt">0 ₺</div></div>
         <div class="stat-card accent-amber"><div class="lbl">خسارة عمولة الكروت</div><div class="amt num" id="dCardLoss">0 ₺</div></div>
+        <div class="stat-card" style="border-top-color:#2c5279;"><div class="lbl">عربونات ودفعات مقدمة (لصالح الزبائن)</div><div class="amt num" id="dCustCredit">0 ₺</div></div>
       </div>
       <div class="panel" id="lowStockPanel" style="display:none;">
         <h2 style="color:var(--bad);">⚠️ تنبيه: مواد منخفضة بالمخزون</h2>
@@ -1338,7 +1339,9 @@ function renderCustomers(){
   let html = '';
   window.appData.customers.forEach(c=>{
     let tot = c.totalBill||0, paid = c.totalPaid||0, rem = tot-paid;
-    html += `<tr><td class="clickable" onclick="openCust('${c.id}')">${esc(c.name)}</td><td>${esc(c.phone)}</td><td class="num">${money(tot)}</td><td class="num">${money(paid)}</td><td class="num" style="color:${rem>0?'var(--bad)':'inherit'};font-weight:800;">${money(rem)}</td><td><button class="btn btn-danger" onclick="delCust('${c.id}')">حذف</button></td></tr>`;
+    let remLabel = rem > 0 ? money(rem) : (rem < 0 ? `${money(-rem)} (له عربون)` : money(0));
+    let remColor = rem > 0 ? 'var(--bad)' : (rem < 0 ? '#2c5279' : 'inherit');
+    html += `<tr><td class="clickable" onclick="openCust('${c.id}')">${esc(c.name)}</td><td>${esc(c.phone)}</td><td class="num">${money(tot)}</td><td class="num">${money(paid)}</td><td class="num" style="color:${remColor};font-weight:800;">${remLabel}</td><td><button class="btn btn-danger" onclick="delCust('${c.id}')">حذف</button></td></tr>`;
   });
   document.getElementById('customersTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا يوجد زبائن مسجلين بعد</td></tr>`;
   document.getElementById('custCountBadge').textContent = window.appData.customers.length;
@@ -2298,23 +2301,39 @@ window.shareInvoiceWhatsAppPdf = async function(){
 window.save = function(){ refreshUI(); };
 
 window.refreshUI = function(){
-  // Dashboard reads the pre-computed stats doc instead of looping every invoice —
-  // this is what keeps the app fast no matter how many years of invoices pile up.
+  // Dashboard reads the pre-computed stats doc for flow totals (sales/purchases/
+  // wages/expenses/card-loss) — no per-invoice scanning, stays fast forever.
   let st = window.appData.stats || {totalSales:0,totalCustPaid:0,totalPurchases:0,totalSuppPaidNet:0,totalWages:0,totalExpenses:0,totalCardLoss:0};
   let tSales = st.totalSales||0;
-  let tCustDebt = (st.totalSales||0) - (st.totalCustPaid||0);
   let tPurchases = st.totalPurchases||0;
-  let tSuppDebt = (st.totalPurchases||0) - (st.totalSuppPaidNet||0);
   let totalWages = st.totalWages||0;
   let totalExp = st.totalExpenses||0;
   let cLoss = st.totalCardLoss||0;
   let totalBudget = tSales - (tPurchases + cLoss + totalWages + totalExp);
+
+  // "Debt" is NOT the same as (totalSales - totalPaid) globally: a deposit/عربون
+  // from one customer who hasn't been billed yet would net-cancel against another
+  // customer's real debt in that formula, even though they're unrelated accounts.
+  // So debt is summed per-customer, counting ONLY positive balances (they owe us).
+  // A customer who has paid more than they've been billed (a deposit) shows that
+  // as a separate "advance credit" instead of silently reducing someone else's debt.
+  let tCustDebt = 0, tCustCredit = 0;
+  (window.appData.customers||[]).forEach(c=>{
+    let bal = (c.totalBill||0) - (c.totalPaid||0);
+    if(bal > 0) tCustDebt += bal; else tCustCredit += (-bal);
+  });
+  let tSuppDebt = 0;
+  (window.appData.suppliers||[]).forEach(s=>{
+    let bal = (s.totalNet||0) - (s.totalPaidNet||0);
+    if(bal > 0) tSuppDebt += bal;
+  });
 
   document.getElementById('dSales').textContent = money(tSales);
   document.getElementById('dPurchases').textContent = money(tPurchases);
   document.getElementById('dCustDebt').textContent = money(tCustDebt);
   document.getElementById('dSuppDebt').textContent = money(tSuppDebt);
   document.getElementById('dCardLoss').textContent = money(cLoss);
+  document.getElementById('dCustCredit').textContent = money(tCustCredit);
   document.getElementById('dBudget').textContent = money(totalBudget);
 
   renderCustomers();
