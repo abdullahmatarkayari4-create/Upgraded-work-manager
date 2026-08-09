@@ -184,7 +184,7 @@ tbody tr:hover{background:#fbf7f0;}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--walnut);color:#fff;padding:12px 22px;border-radius:99px;font-weight:700;font-size:13px;z-index:9999;box-shadow:0 10px 25px rgba(0,0,0,.3);display:none;}
 .confirm-box .modal-box{max-width:380px;text-align:center;}
-.confirm-box p{color:var(--ink-soft);font-size:13px;margin-bottom:18px;}
+.confirm-box p{color:var(--ink-soft);font-size:13px;margin-bottom:18px;white-space:pre-line;text-align:right;}
 .confirm-actions{display:flex;gap:10px;justify-content:center;}
 </style>
 </head>
@@ -226,6 +226,8 @@ tbody tr:hover{background:#fbf7f0;}
       <div class="nav-item" data-sec="s-tools" onclick="goTo('s-tools')"><span class="ic">🛠️</span>العدة والأجهزة</div>
       <div class="nav-item" data-sec="s-employees" onclick="goTo('s-employees')"><span class="ic">👷</span>الموظفين والأجور</div>
       <div class="nav-item" data-sec="s-expenses" onclick="goTo('s-expenses')"><span class="ic">💸</span>المصاريف</div>
+      <div class="nav-sep">التقارير</div>
+      <div class="nav-item" data-sec="s-reports" onclick="goTo('s-reports')"><span class="ic">📊</span>التقارير الشهرية</div>
       <div class="nav-sep">أدوات</div>
       <div class="nav-item" data-sec="s-search" onclick="goTo('s-search')"><span class="ic">🔍</span>البحث الشامل</div>
       <div class="nav-item" data-sec="s-log" onclick="goTo('s-log')"><span class="ic">🕘</span>سجل العمليات</div>
@@ -255,6 +257,10 @@ tbody tr:hover{background:#fbf7f0;}
         <div class="stat-card accent-bad"><div class="lbl">ديون على الزبائن</div><div class="amt num" id="dCustDebt">0 ₺</div></div>
         <div class="stat-card accent-bad"><div class="lbl">ديون للموردين</div><div class="amt num" id="dSuppDebt">0 ₺</div></div>
         <div class="stat-card accent-amber"><div class="lbl">خسارة عمولة الكروت</div><div class="amt num" id="dCardLoss">0 ₺</div></div>
+      </div>
+      <div class="panel" id="lowStockPanel" style="display:none;">
+        <h2 style="color:var(--bad);">⚠️ تنبيه: مواد منخفضة بالمخزون</h2>
+        <div class="tbl-wrap"><table><thead><tr><th>الصنف</th><th>الكمية الحالية</th><th>الحد الأدنى</th></tr></thead><tbody id="dLowStock"></tbody></table></div>
       </div>
       <div class="panel">
         <h2>طلبات مستحقة التسليم قريباً</h2>
@@ -292,6 +298,7 @@ tbody tr:hover{background:#fbf7f0;}
               </select>
             </div>
             <div class="field"><label>البيان / التفاصيل</label><input id="billCustDesc" required placeholder="غرفة نوم، صالون..."></div>
+            <div class="field"><label>التاريخ</label><input type="date" id="billCustDate"></div>
             <div class="field" id="groupCustTotal"><label>قيمة الفاتورة</label><input type="number" step="0.01" id="billCustTotal" placeholder="0"></div>
             <div class="field"><label>المبلغ المدفوع الآن</label><input type="number" step="0.01" id="billCustPaid" value="0" required placeholder="0"></div>
             <div class="field"><label>طريقة الدفع</label>
@@ -345,6 +352,7 @@ tbody tr:hover{background:#fbf7f0;}
               </select>
             </div>
             <div class="field"><label>البيان / التفاصيل</label><input id="billSuppDesc" required placeholder="خشب، إسفنج..."></div>
+            <div class="field"><label>التاريخ</label><input type="date" id="billSuppDate"></div>
             <div class="field" id="groupSuppTotal"><label>قيمة الفاتورة</label><input type="number" step="0.01" id="billSuppTotal" placeholder="0"></div>
             <div class="field" id="groupSuppType"><label>نوع الفاتورة</label>
               <select id="billSuppType">
@@ -388,6 +396,11 @@ tbody tr:hover{background:#fbf7f0;}
           <div class="field"><label>نوع القماش</label><input id="orderFabric" placeholder="مخمل بيج"></div>
           <div class="field"><label>نوع الأرجل</label><input id="orderLegs" placeholder="خشب زان"></div>
           <div class="field" style="grid-column:1/-1;"><label>تفاصيل إضافية</label><input id="orderExtra" placeholder="ملاحظات..."></div>
+          <div style="grid-column:1/-1;">
+            <label style="font-size:12px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">المواد المستخدمة من المخزون (اختياري — تُخصم تلقائياً عند التسليم)</label>
+            <div id="orderMaterialsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addMaterialRow()">➕ إضافة مادة</button>
+          </div>
           <div class="field-actions">
             <button class="btn btn-primary" id="orderSubmitBtn">➕ إضافة الطلب</button>
             <button type="button" class="btn btn-ghost hidden" id="cancelOrderEditBtn" onclick="cancelOrderEdit()">إلغاء</button>
@@ -416,6 +429,7 @@ tbody tr:hover{background:#fbf7f0;}
             <div class="field"><label>اسم النوعية / الصنف</label><input id="resName" required placeholder="سفنج كثافة 25 / خشب زان"></div>
             <div class="field"><label>القياسات / المواصفات</label><input id="resDims" placeholder="سمك 5سم، عرض 140سم"></div>
             <div class="field"><label>الكمية الحالية (اختياري)</label><input type="number" step="0.01" id="resInitQty" placeholder="0"></div>
+            <div class="field"><label>حد التنبيه الأدنى (اختياري)</label><input type="number" step="0.01" id="resInitMinQty" placeholder="مثال: 20"></div>
             <div class="field"><label>ملاحظات</label><input id="resNote" placeholder="ملاحظات..."></div>
             <div class="field-actions"><button class="btn btn-primary">➕ إضافة نوعية جديدة</button></div>
           </form>
@@ -454,6 +468,7 @@ tbody tr:hover{background:#fbf7f0;}
             <div class="field"><label>اسم الصنف</label><input id="resEditName" required></div>
             <div class="field"><label>القياسات / المواصفات</label><input id="resEditDims"></div>
             <div class="field"><label>ملاحظات</label><input id="resEditNote"></div>
+            <div class="field"><label>حد التنبيه الأدنى</label><input type="number" step="0.01" id="resEditMinQty" placeholder="0 = بدون تنبيه"></div>
             <div class="field-actions"><button class="btn btn-ghost btn-sm">💾 تحديث البيانات</button></div>
           </form>
         </div>
@@ -505,6 +520,7 @@ tbody tr:hover{background:#fbf7f0;}
           <form id="empActionForm" class="grid-form" onsubmit="saveEmployeeAction(event)">
             <input type="hidden" id="editEmpTxId">
             <div class="field"><label>البيان</label><input id="empTxDesc" required placeholder="أجر أسبوعي، سلفة..."></div>
+            <div class="field"><label>التاريخ</label><input type="date" id="empTxDate"></div>
             <div class="field"><label>المبلغ</label><input type="number" step="0.01" id="empTxAmount" required placeholder="0"></div>
             <div class="field"><label>طريقة الدفع</label>
               <select id="empTxMethod">
@@ -533,6 +549,7 @@ tbody tr:hover{background:#fbf7f0;}
         <h2>المصاريف الثابتة <span class="badge-total" id="expSumBadge">0 ₺</span></h2>
         <form class="grid-form" onsubmit="addExpense(event)">
           <div class="field"><label>البيان</label><input id="expTitle" required placeholder="إيجار، كهرباء، ماء..."></div>
+          <div class="field"><label>التاريخ</label><input type="date" id="expDate"></div>
           <div class="field"><label>المبلغ</label><input type="number" step="0.01" id="expAmount" required placeholder="0"></div>
           <div class="field"><label>طريقة الدفع</label>
             <select id="expMethod">
@@ -549,6 +566,23 @@ tbody tr:hover{background:#fbf7f0;}
     </section>
 
     <!-- ===== SEARCH ===== -->
+    <!-- ===== REPORTS ===== -->
+    <section class="section" id="s-reports">
+      <div class="panel">
+        <h2>التقرير الشهري</h2>
+        <div class="field" style="max-width:220px;margin-bottom:16px;">
+          <label>اختر الشهر</label>
+          <input type="month" id="reportMonthPicker" onchange="loadMonthReport()">
+        </div>
+        <div class="stat-grid" id="reportStatGrid"></div>
+      </div>
+      <div class="panel">
+        <h2>مقارنة آخر 12 شهر</h2>
+        <div class="tbl-wrap"><table><thead><tr><th>الشهر</th><th>المبيعات</th><th>المشتريات</th><th>الأجور</th><th>المصاريف</th><th>خسارة الكروت</th><th>صافي الربح</th></tr></thead><tbody id="reportsCompareTable"></tbody></table></div>
+        <p style="font-size:11px;color:var(--ink-soft);margin-top:10px;">ملاحظة: البيانات الشهرية تبدأ من تاريخ تفعيل هذه الميزة. للأشهر القديمة قبل ذلك، استخدم "إعادة بناء الإحصائيات" بصفحة الإعدادات لتعبئتها من الفواتير الفعلية.</p>
+      </div>
+    </section>
+
     <section class="section" id="s-search">
       <div class="panel">
         <h2>البحث الشامل</h2>
@@ -745,7 +779,7 @@ async function loadCloudData() {
     suppSnap.forEach(d => { let s = d.data(); s.totalNet = s.totalNet||0; s.totalPaidNet = s.totalPaidNet||0; s.totalCardLoss = s.totalCardLoss||0; s.txs = []; s._loaded = false; window.appData.suppliers.push(s); });
     empSnap.forEach(d => { let em = d.data(); em.totalWages = em.totalWages||0; em.totalCardLoss = em.totalCardLoss||0; em.txs = []; em._loaded = false; window.appData.employees.push(em); });
     orderSnap.forEach(d => window.appData.orders.push(d.data()));
-    resSnap.forEach(d => { let r = d.data(); r.qty = r.qty||0; r.txs = []; r._loaded = false; window.appData.resources.push(r); });
+    resSnap.forEach(d => { let r = d.data(); r.qty = r.qty||0; r.minQty = r.minQty||0; r.txs = []; r._loaded = false; window.appData.resources.push(r); });
     toolSnap.forEach(d => window.appData.tools.push(d.data()));
     expSnap.forEach(d => window.appData.expenses.push(d.data()));
     logSnap.forEach(d => window.appData.logs.push(d.data()));
@@ -821,6 +855,10 @@ window.cloudFetch = {
     let arr = []; snap.forEach(d => arr.push(d.data()));
     arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
     return arr;
+  },
+  monthStats: async monthKey => {
+    const snap = await getDoc(doc(dbCloud, "workshops", currentUser.uid, "monthlyStats", monthKey));
+    return snap.exists() ? snap.data() : { totalSales:0, totalCustPaid:0, totalPurchases:0, totalSuppPaidNet:0, totalWages:0, totalExpenses:0, totalCardLoss:0 };
   }
 };
 
@@ -828,6 +866,42 @@ function statsUpdatePayload(delta){
   let updates = {};
   for (const k in delta) { if (delta[k]) updates['stats.' + k] = increment(delta[k]); }
   return updates;
+}
+/* ---------- monthly stats (Reports page) ----------
+   One tiny doc per calendar month (workshops/{uid}/monthlyStats/{YYYY-MM}).
+   Kept in lock-step with every mutation, same atomic batch as the invoice
+   itself, so "profit for August" is a single direct doc read — no scanning. */
+function monthlyRef(monthKey){ return doc(dbCloud, "workshops", currentUser.uid, "monthlyStats", monthKey); }
+function monthlyPayload(delta){
+  let updates = {};
+  for (const k in delta) { if (delta[k]) updates[k] = increment(delta[k]); }
+  return updates;
+}
+/* Adds the correct monthly batch op(s) for a save/edit. If the entry moved to a
+   different month (date changed on edit), the old month is corrected down and
+   the new month corrected up; otherwise it's a single net delta on one month. */
+function addMonthlyOpsForSave(b, newTx, oldTx, fields){
+  const newMonth = (newTx.date||'').slice(0,7);
+  const oldMonth = oldTx ? (oldTx.date||'').slice(0,7) : null;
+  if (!newMonth) return;
+  if (!oldTx || oldMonth === newMonth) {
+    let delta = {}; for (const k in fields) delta[k] = (newTx[fields[k]]||0) - (oldTx ? (oldTx[fields[k]]||0) : 0);
+    const p = monthlyPayload(delta);
+    if (Object.keys(p).length) b.set(monthlyRef(newMonth), p, { merge: true });
+  } else {
+    let oldDelta = {}, newDelta = {};
+    for (const k in fields) { oldDelta[k] = -(oldTx[fields[k]]||0); newDelta[k] = (newTx[fields[k]]||0); }
+    const op = monthlyPayload(oldDelta), np = monthlyPayload(newDelta);
+    if (oldMonth && Object.keys(op).length) b.set(monthlyRef(oldMonth), op, { merge: true });
+    if (Object.keys(np).length) b.set(monthlyRef(newMonth), np, { merge: true });
+  }
+}
+function addMonthlyOpsForDelete(b, tx, fields){
+  const monthKey = (tx.date||'').slice(0,7);
+  if (!monthKey) return;
+  let delta = {}; for (const k in fields) delta[k] = -(tx[fields[k]]||0);
+  const p = monthlyPayload(delta);
+  if (Object.keys(p).length) b.set(monthlyRef(monthKey), p, { merge: true });
 }
 
 window.cloudSave = {
@@ -848,9 +922,9 @@ window.cloudSave = {
 
   order: async o => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(o.id)), o),
   deleteOrder: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(id))),
-  resource: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), { id: r.id, category: r.category, name: r.name, dims: r.dims, note: r.note, qty: r.qty||0 }),
+  resource: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), { id: r.id, category: r.category, name: r.name, dims: r.dims, note: r.note, qty: r.qty||0, minQty: r.minQty||0 }),
   resourceMovement: async (rid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements", String(t.id)), t), // backup import only
-  resourceInfo: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), { id: r.id, category: r.category, name: r.name, dims: r.dims, note: r.note, qty: r.qty||0 }, { merge: true }),
+  resourceInfo: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), { id: r.id, category: r.category, name: r.name, dims: r.dims, note: r.note, qty: r.qty||0, minQty: r.minQty||0 }, { merge: true }),
   deleteResourceDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources", String(id), "movements")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(id))); },
   saveResourceMovementAtomic: async (rid, mov, appliedDelta) => {
     if(!currentUser) return;
@@ -879,58 +953,64 @@ window.cloudSave = {
      Firestore batch: either everything commits together, or nothing does.
      This is what point #1 from the review asked for — no more "invoice saved
      but stats didn't update" if the connection drops mid-operation. */
-  saveCustomerTxAtomic: async (cid, tx, deltaTotal, deltaPaid) => {
+  saveCustomerTxAtomic: async (cid, tx, deltaTotal, deltaPaid, oldTx) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.set(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(tx.id)), tx);
     if(deltaTotal || deltaPaid) b.update(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid)), { totalBill: increment(deltaTotal||0), totalPaid: increment(deltaPaid||0) });
     const sp = statsUpdatePayload({ totalSales: deltaTotal, totalCustPaid: deltaPaid });
     if(Object.keys(sp).length) b.update(rootRef(), sp);
+    addMonthlyOpsForSave(b, tx, oldTx||null, { totalSales: 'total', totalCustPaid: 'paid' });
     await b.commit();
   },
-  deleteCustomerTxAtomic: async (cid, tid, deltaTotal, deltaPaid) => {
+  deleteCustomerTxAtomic: async (cid, tid, deltaTotal, deltaPaid, deletedTx) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.delete(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(tid)));
     b.update(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid)), { totalBill: increment(deltaTotal||0), totalPaid: increment(deltaPaid||0) });
     const sp = statsUpdatePayload({ totalSales: deltaTotal, totalCustPaid: deltaPaid });
     if(Object.keys(sp).length) b.update(rootRef(), sp);
+    if(deletedTx) addMonthlyOpsForDelete(b, deletedTx, { totalSales: 'total', totalCustPaid: 'paid' });
     await b.commit();
   },
-  saveSupplierTxAtomic: async (sid, tx, deltaNet, deltaPaidNet, deltaCardLoss) => {
+  saveSupplierTxAtomic: async (sid, tx, deltaNet, deltaPaidNet, deltaCardLoss, oldTx) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.set(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(tx.id)), tx);
     b.update(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid)), { totalNet: increment(deltaNet||0), totalPaidNet: increment(deltaPaidNet||0), totalCardLoss: increment(deltaCardLoss||0) });
     const sp = statsUpdatePayload({ totalPurchases: deltaNet, totalSuppPaidNet: deltaPaidNet, totalCardLoss: deltaCardLoss });
     if(Object.keys(sp).length) b.update(rootRef(), sp);
+    addMonthlyOpsForSave(b, tx, oldTx||null, { totalPurchases: 'supplierTotalNet', totalSuppPaidNet: 'supplierPaidNet', totalCardLoss: 'cardLoss' });
     await b.commit();
   },
-  deleteSupplierTxAtomic: async (sid, tid, deltaNet, deltaPaidNet, deltaCardLoss) => {
+  deleteSupplierTxAtomic: async (sid, tid, deltaNet, deltaPaidNet, deltaCardLoss, deletedTx) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.delete(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(tid)));
     b.update(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid)), { totalNet: increment(deltaNet||0), totalPaidNet: increment(deltaPaidNet||0), totalCardLoss: increment(deltaCardLoss||0) });
     const sp = statsUpdatePayload({ totalPurchases: deltaNet, totalSuppPaidNet: deltaPaidNet, totalCardLoss: deltaCardLoss });
     if(Object.keys(sp).length) b.update(rootRef(), sp);
+    if(deletedTx) addMonthlyOpsForDelete(b, deletedTx, { totalPurchases: 'supplierTotalNet', totalSuppPaidNet: 'supplierPaidNet', totalCardLoss: 'cardLoss' });
     await b.commit();
   },
-  saveEmployeeTxAtomic: async (eid, tx, deltaAmount, deltaCardLoss) => {
+  saveEmployeeTxAtomic: async (eid, tx, deltaAmount, deltaCardLoss, oldTx) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.set(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(tx.id)), tx);
     b.update(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid)), { totalWages: increment(deltaAmount||0), totalCardLoss: increment(deltaCardLoss||0) });
     const sp = statsUpdatePayload({ totalWages: deltaAmount, totalCardLoss: deltaCardLoss });
     if(Object.keys(sp).length) b.update(rootRef(), sp);
+    addMonthlyOpsForSave(b, tx, oldTx||null, { totalWages: 'amount', totalCardLoss: 'cardLoss' });
     await b.commit();
   },
-  deleteEmployeeTxAtomic: async (eid, tid, deltaAmount, deltaCardLoss) => {
+  deleteEmployeeTxAtomic: async (eid, tid, deltaAmount, deltaCardLoss, deletedTx) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.delete(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions", String(tid)));
     b.update(doc(dbCloud, "workshops", currentUser.uid, "employees", String(eid)), { totalWages: increment(deltaAmount||0), totalCardLoss: increment(deltaCardLoss||0) });
     const sp = statsUpdatePayload({ totalWages: deltaAmount, totalCardLoss: deltaCardLoss });
     if(Object.keys(sp).length) b.update(rootRef(), sp);
+    if(deletedTx) addMonthlyOpsForDelete(b, deletedTx, { totalWages: 'amount', totalCardLoss: 'cardLoss' });
     await b.commit();
   },
   saveExpenseAtomic: async ex => {
@@ -939,17 +1019,19 @@ window.cloudSave = {
     b.set(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(ex.id)), ex);
     const sp = statsUpdatePayload({ totalExpenses: ex.amount, totalCardLoss: ex.cardLoss });
     if(Object.keys(sp).length) b.update(rootRef(), sp);
+    addMonthlyOpsForSave(b, ex, null, { totalExpenses: 'amount', totalCardLoss: 'cardLoss' });
     await b.commit();
   },
-  deleteExpenseAtomic: async (id, amount, cardLoss) => {
+  deleteExpenseAtomic: async (id, amount, cardLoss, expDate) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.delete(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(id)));
     const sp = statsUpdatePayload({ totalExpenses: -(amount||0), totalCardLoss: -(cardLoss||0) });
     if(Object.keys(sp).length) b.update(rootRef(), sp);
+    if(expDate) addMonthlyOpsForDelete(b, { date: expDate, amount, cardLoss }, { totalExpenses: 'amount', totalCardLoss: 'cardLoss' });
     await b.commit();
   },
-  deliverOrderAtomic: async (order, customerId, tx) => {
+  deliverOrderAtomic: async (order, customerId, tx, materialMovs) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.set(doc(dbCloud, "workshops", currentUser.uid, "orders", String(order.id)), order);
@@ -957,6 +1039,12 @@ window.cloudSave = {
     b.update(doc(dbCloud, "workshops", currentUser.uid, "customers", String(customerId)), { totalBill: increment(tx.total||0), totalPaid: increment(tx.paid||0) });
     const sp = statsUpdatePayload({ totalSales: tx.total, totalCustPaid: tx.paid });
     if(Object.keys(sp).length) b.update(rootRef(), sp);
+    addMonthlyOpsForSave(b, tx, null, { totalSales: 'total', totalCustPaid: 'paid' });
+    // auto-deduct any linked inventory materials in the SAME atomic batch as the invoice
+    (materialMovs||[]).forEach(mm => {
+      b.set(doc(dbCloud, "workshops", currentUser.uid, "resources", String(mm.resourceId), "movements", String(mm.movement.id)), mm.movement);
+      b.update(doc(dbCloud, "workshops", currentUser.uid, "resources", String(mm.resourceId)), { qty: increment(mm.appliedDelta||0) });
+    });
     await b.commit();
   }
 };
@@ -968,12 +1056,19 @@ window.recalcStats = async function(rebuild){
   if(!currentUser) return null;
   const actual = { totalSales:0, totalCustPaid:0, totalPurchases:0, totalSuppPaidNet:0, totalWages:0, totalExpenses:0, totalCardLoss:0 };
   const custAgg = [], suppAgg = [], empAgg = [];
+  const monthly = {}; // { 'YYYY-MM': { totalSales, totalCustPaid, ... } }
+  function addToMonth(dateStr, field, amount){
+    if(!amount || !dateStr) return;
+    const key = dateStr.slice(0,7);
+    if(!monthly[key]) monthly[key] = { totalSales:0, totalCustPaid:0, totalPurchases:0, totalSuppPaidNet:0, totalWages:0, totalExpenses:0, totalCardLoss:0 };
+    monthly[key][field] += amount;
+  }
 
   const custSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers"));
   for (let d of custSnap.docs) {
     const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", d.id, "transactions"));
     let bill=0, paid=0;
-    txSnap.forEach(t => { const tx=t.data(); bill += (tx.total||0); paid += (tx.paid||0); });
+    txSnap.forEach(t => { const tx=t.data(); bill += (tx.total||0); paid += (tx.paid||0); addToMonth(tx.date, 'totalSales', tx.total||0); addToMonth(tx.date, 'totalCustPaid', tx.paid||0); });
     actual.totalSales += bill; actual.totalCustPaid += paid;
     custAgg.push({ id: d.id, totalBill: bill, totalPaid: paid });
   }
@@ -981,7 +1076,7 @@ window.recalcStats = async function(rebuild){
   for (let d of suppSnap.docs) {
     const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers", d.id, "transactions"));
     let net=0, paidNet=0, cardLoss=0;
-    txSnap.forEach(t => { const tx=t.data(); net += (tx.supplierTotalNet||0); paidNet += (tx.supplierPaidNet||0); cardLoss += (tx.cardLoss||0); });
+    txSnap.forEach(t => { const tx=t.data(); net += (tx.supplierTotalNet||0); paidNet += (tx.supplierPaidNet||0); cardLoss += (tx.cardLoss||0); addToMonth(tx.date, 'totalPurchases', tx.supplierTotalNet||0); addToMonth(tx.date, 'totalSuppPaidNet', tx.supplierPaidNet||0); addToMonth(tx.date, 'totalCardLoss', tx.cardLoss||0); });
     actual.totalPurchases += net; actual.totalSuppPaidNet += paidNet; actual.totalCardLoss += cardLoss;
     suppAgg.push({ id: d.id, totalNet: net, totalPaidNet: paidNet, totalCardLoss: cardLoss });
   }
@@ -989,12 +1084,12 @@ window.recalcStats = async function(rebuild){
   for (let d of empSnap.docs) {
     const txSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees", d.id, "transactions"));
     let amount=0, cardLoss=0;
-    txSnap.forEach(t => { const tx=t.data(); amount += (tx.amount||0); cardLoss += (tx.cardLoss||0); });
+    txSnap.forEach(t => { const tx=t.data(); amount += (tx.amount||0); cardLoss += (tx.cardLoss||0); addToMonth(tx.date, 'totalWages', tx.amount||0); addToMonth(tx.date, 'totalCardLoss', tx.cardLoss||0); });
     actual.totalWages += amount; actual.totalCardLoss += cardLoss;
     empAgg.push({ id: d.id, totalWages: amount, totalCardLoss: cardLoss });
   }
   const expSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "expenses"));
-  expSnap.forEach(d => { const ex = d.data(); actual.totalExpenses += (ex.amount||0); actual.totalCardLoss += (ex.cardLoss||0); });
+  expSnap.forEach(d => { const ex = d.data(); actual.totalExpenses += (ex.amount||0); actual.totalCardLoss += (ex.cardLoss||0); addToMonth(ex.date, 'totalExpenses', ex.amount||0); addToMonth(ex.date, 'totalCardLoss', ex.cardLoss||0); });
 
   const current = window.appData.stats;
   let matches = true;
@@ -1005,6 +1100,7 @@ window.recalcStats = async function(rebuild){
     for (let c of custAgg) await setDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(c.id)), { totalBill: c.totalBill, totalPaid: c.totalPaid }, { merge: true });
     for (let s of suppAgg) await setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { totalNet: s.totalNet, totalPaidNet: s.totalPaidNet, totalCardLoss: s.totalCardLoss }, { merge: true });
     for (let em of empAgg) await setDoc(doc(dbCloud, "workshops", currentUser.uid, "employees", String(em.id)), { totalWages: em.totalWages, totalCardLoss: em.totalCardLoss }, { merge: true });
+    for (const monthKey in monthly) await setDoc(monthlyRef(monthKey), monthly[monthKey]); // full overwrite — authoritative rebuild, not a delta
     window.appData.stats = actual;
     for (let c of window.appData.customers) { const f = custAgg.find(x=>x.id===c.id); if(f){ c.totalBill=f.totalBill; c.totalPaid=f.totalPaid; } }
     for (let s of window.appData.suppliers) { const f = suppAgg.find(x=>x.id===s.id); if(f){ s.totalNet=f.totalNet; s.totalPaidNet=f.totalPaidNet; s.totalCardLoss=f.totalCardLoss; } }
@@ -1164,11 +1260,18 @@ function goTo(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelector(`.nav-item[data-sec="${id}"]`).classList.add('active');
-  const titles = {'s-home':'الرئيسية','s-customers':'الزبائن','s-suppliers':'الموردين','s-orders':'الطلبات','s-resources':'المواد الخام','s-tools':'العدة والأجهزة','s-employees':'الموظفين والأجور','s-expenses':'المصاريف','s-search':'البحث الشامل','s-log':'سجل العمليات','s-settings':'الإعدادات'};
+  const titles = {'s-home':'الرئيسية','s-customers':'الزبائن','s-suppliers':'الموردين','s-orders':'الطلبات','s-resources':'المواد الخام','s-tools':'العدة والأجهزة','s-employees':'الموظفين والأجور','s-expenses':'المصاريف','s-reports':'التقارير الشهرية','s-search':'البحث الشامل','s-log':'سجل العمليات','s-settings':'الإعدادات'};
   document.getElementById('pageTitle').textContent = titles[id] || '';
   document.getElementById('sidebar').classList.remove('open');
   if(id === 's-orders'){ populateOrderCustomerSelect(); if(!document.getElementById('editOrderId').value) document.getElementById('orderDueDate').value = getDate(); }
   if(id === 's-resources') renderResources();
+  if(id === 's-expenses' && !document.getElementById('expDate').value) document.getElementById('expDate').value = getDate();
+  if(id === 's-reports'){
+    let picker = document.getElementById('reportMonthPicker');
+    if(!picker.value) picker.value = new Date().toISOString().slice(0,7);
+    loadMonthReport();
+    loadReportsComparison();
+  }
   refreshUI();
 }
 window.goTo = goTo;
@@ -1296,12 +1399,13 @@ window.saveCustomerAction = function(e){
   let paid = parseFloat(document.getElementById('billCustPaid').value)||0;
   let desc = document.getElementById('billCustDesc').value.trim();
   let method = document.getElementById('billCustMethod').value;
+  let date = document.getElementById('billCustDate').value || getDate();
   let txId = editId || uid();
-  let tx = { id: txId, date: getDate(), desc, total, paid, method, createdAt: Date.now() };
-  let deltaTotal = total, deltaPaid = paid;
+  let tx = { id: txId, date, desc, total, paid, method, createdAt: Date.now() };
+  let deltaTotal = total, deltaPaid = paid, oldTx = null;
   if(editId){
     let idx = c.txs.findIndex(t=>t.id===editId);
-    if(idx!==-1){ tx.createdAt = c.txs[idx].createdAt; deltaTotal = total - (c.txs[idx].total||0); deltaPaid = paid - (c.txs[idx].paid||0); c.txs[idx] = tx; }
+    if(idx!==-1){ oldTx = c.txs[idx]; tx.createdAt = oldTx.createdAt; deltaTotal = total - (oldTx.total||0); deltaPaid = paid - (oldTx.paid||0); c.txs[idx] = tx; }
     addLog("تعديل فاتورة زبون", `تعديل حركة للزبون ${c.name}`);
   } else {
     c.txs.push(tx);
@@ -1311,7 +1415,7 @@ window.saveCustomerAction = function(e){
   c.totalPaid = (c.totalPaid||0) + deltaPaid;
   window.appData.stats.totalSales += deltaTotal;
   window.appData.stats.totalCustPaid += deltaPaid;
-  if(window.cloudSave) window.cloudSave.saveCustomerTxAtomic(c.id, tx, deltaTotal, deltaPaid);
+  if(window.cloudSave) window.cloudSave.saveCustomerTxAtomic(c.id, tx, deltaTotal, deltaPaid, oldTx);
   save(); openCust(c.id, true); showToast("✅ تم الحفظ.");
 };
 window.editCustTx = function(cid, tid){
@@ -1322,6 +1426,7 @@ window.editCustTx = function(cid, tid){
   document.getElementById('custTxType').value = (t.total>0) ? 'bill' : 'payment';
   toggleCustFormMode();
   document.getElementById('billCustDesc').value = t.desc;
+  document.getElementById('billCustDate').value = t.date || getDate();
   document.getElementById('billCustTotal').value = t.total;
   document.getElementById('billCustPaid').value = t.paid;
   document.getElementById('billCustMethod').value = t.method;
@@ -1333,6 +1438,7 @@ window.cancelCustEdit = function(){
   document.getElementById('custActionForm').reset();
   document.getElementById('editCustTxId').value = '';
   document.getElementById('custTxType').value = 'bill';
+  document.getElementById('billCustDate').value = getDate();
   toggleCustFormMode();
   document.getElementById('custSubmitBtn').textContent = '💾 حفظ الحركة';
   document.getElementById('cancelCustEditBtn').classList.add('hidden');
@@ -1360,7 +1466,7 @@ window.delCustTx = function(cid, tid){
     window.appData.stats.totalSales += deltaTotal;
     window.appData.stats.totalCustPaid += deltaPaid;
     addLog("حذف فاتورة زبون", `حذف حركة من حساب ${c.name}`);
-    if(window.cloudSave) window.cloudSave.deleteCustomerTxAtomic(cid, tid, deltaTotal, deltaPaid);
+    if(window.cloudSave) window.cloudSave.deleteCustomerTxAtomic(cid, tid, deltaTotal, deltaPaid, t);
     save(); openCust(cid, true); showToast("تم الحذف.");
   });
 };
@@ -1452,15 +1558,17 @@ window.saveSupplierAction = function(e){
     else if(billType === 'چكيم_5') supplierTotalNet = rawTotal * 0.95;
   }
   let txId = editId || uid();
-  let tx = { id: txId, date: getDate(), desc, supplierTotalNet, grossPaid, supplierPaidNet, method, cardLoss, createdAt: Date.now() };
-  let deltaNet = supplierTotalNet, deltaPaidNet = supplierPaidNet, deltaCardLoss = cardLoss;
+  let date = document.getElementById('billSuppDate').value || getDate();
+  let tx = { id: txId, date, desc, supplierTotalNet, grossPaid, supplierPaidNet, method, cardLoss, createdAt: Date.now() };
+  let deltaNet = supplierTotalNet, deltaPaidNet = supplierPaidNet, deltaCardLoss = cardLoss, oldTx = null;
   if(editId){
     let idx = s.txs.findIndex(t=>t.id===editId);
     if(idx!==-1){
-      tx.createdAt = s.txs[idx].createdAt;
-      deltaNet = supplierTotalNet - (s.txs[idx].supplierTotalNet||0);
-      deltaPaidNet = supplierPaidNet - (s.txs[idx].supplierPaidNet||0);
-      deltaCardLoss = cardLoss - (s.txs[idx].cardLoss||0);
+      oldTx = s.txs[idx];
+      tx.createdAt = oldTx.createdAt;
+      deltaNet = supplierTotalNet - (oldTx.supplierTotalNet||0);
+      deltaPaidNet = supplierPaidNet - (oldTx.supplierPaidNet||0);
+      deltaCardLoss = cardLoss - (oldTx.cardLoss||0);
       s.txs[idx] = tx;
     }
     addLog("تعديل فاتورة مورد", `تعديل حركة للمورد ${s.name}`);
@@ -1474,7 +1582,7 @@ window.saveSupplierAction = function(e){
   window.appData.stats.totalPurchases += deltaNet;
   window.appData.stats.totalSuppPaidNet += deltaPaidNet;
   window.appData.stats.totalCardLoss += deltaCardLoss;
-  if(window.cloudSave) window.cloudSave.saveSupplierTxAtomic(s.id, tx, deltaNet, deltaPaidNet, deltaCardLoss);
+  if(window.cloudSave) window.cloudSave.saveSupplierTxAtomic(s.id, tx, deltaNet, deltaPaidNet, deltaCardLoss, oldTx);
   save(); openSupp(s.id, true); showToast("✅ تم الحفظ.");
 };
 window.editSuppTx = function(sid, tid){
@@ -1485,6 +1593,7 @@ window.editSuppTx = function(sid, tid){
   document.getElementById('suppTxType').value = (t.supplierTotalNet===0 && t.grossPaid>0) ? 'payment' : 'bill';
   toggleSuppFormMode();
   document.getElementById('billSuppDesc').value = t.desc;
+  document.getElementById('billSuppDate').value = t.date || getDate();
   document.getElementById('billSuppTotal').value = t.supplierTotalNet;
   document.getElementById('billSuppPaid').value = t.grossPaid;
   document.getElementById('billSuppMethod').value = t.method;
@@ -1496,6 +1605,7 @@ window.cancelSuppEdit = function(){
   document.getElementById('suppActionForm').reset();
   document.getElementById('editSuppTxId').value = '';
   document.getElementById('suppTxType').value = 'bill';
+  document.getElementById('billSuppDate').value = getDate();
   toggleSuppFormMode();
   document.getElementById('suppSubmitBtn').textContent = '💾 حفظ الحركة';
   document.getElementById('cancelSuppEditBtn').classList.add('hidden');
@@ -1525,7 +1635,7 @@ window.delSuppTx = function(sid, tid){
     window.appData.stats.totalSuppPaidNet += deltaPaidNet;
     window.appData.stats.totalCardLoss += deltaCardLoss;
     addLog("حذف فاتورة مورد", `حذف حركة من ${s.name}`);
-    if(window.cloudSave) window.cloudSave.deleteSupplierTxAtomic(sid, tid, deltaNet, deltaPaidNet, deltaCardLoss);
+    if(window.cloudSave) window.cloudSave.deleteSupplierTxAtomic(sid, tid, deltaNet, deltaPaidNet, deltaCardLoss, t);
     save(); openSupp(sid, true); showToast("تم الحذف.");
   });
 };
@@ -1542,12 +1652,38 @@ function populateOrderCustomerSelect(){
   });
   if(current) sel.value = current;
 }
+/* ---------- material rows inside the order form ---------- */
+const CAT_LABELS = {wood:'🪵 خشب', foam:'🧽 سفنج', fabric:'🧵 قماش', hardware:'🔩 نواعم'};
+window.addMaterialRow = function(resourceId, qty){
+  let container = document.getElementById('orderMaterialsList');
+  let row = document.createElement('div');
+  row.className = 'material-row';
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;';
+  let options = (window.appData.resources||[]).map(r=>`<option value="${r.id}" ${resourceId===r.id?'selected':''}>${CAT_LABELS[r.category]||''} ${esc(r.name)} (متوفر: ${r.qty||0})</option>`).join('');
+  row.innerHTML = `<select style="flex:2;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;"><option value="">— اختر مادة —</option>${options}</select><input type="number" step="0.01" placeholder="الكمية" value="${qty||''}" style="flex:1;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;"><button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(row);
+};
+function collectOrderMaterials(){
+  let rows = document.querySelectorAll('#orderMaterialsList .material-row');
+  let materials = [];
+  rows.forEach(row=>{
+    let sel = row.querySelector('select'), qtyInput = row.querySelector('input');
+    let resourceId = sel.value, qty = parseFloat(qtyInput.value)||0;
+    if(resourceId && qty>0){
+      let r = window.appData.resources.find(x=>x.id===resourceId);
+      materials.push({ resourceId, resourceName: r?r.name:'', qty });
+    }
+  });
+  return materials;
+}
+function clearOrderMaterials(){ document.getElementById('orderMaterialsList').innerHTML = ''; }
 window.saveOrder = function(e){
   e.preventDefault();
   let custId = document.getElementById('orderCustSelect').value;
   let customer = window.appData.customers.find(c=>c.id===custId);
   if(!customer){ showToast("⚠️ الرجاء اختيار زبون."); return; }
   let editId = document.getElementById('editOrderId').value;
+  let materials = collectOrderMaterials();
   if(!window.appData.orders) window.appData.orders = [];
   let order;
   if(editId){
@@ -1560,6 +1696,7 @@ window.saveOrder = function(e){
       order.fabric = document.getElementById('orderFabric').value.trim();
       order.legs = document.getElementById('orderLegs').value.trim();
       order.extra = document.getElementById('orderExtra').value.trim();
+      order.materials = materials;
     }
     addLog("تعديل طلب", `تعديل طلب للزبون ${customer.name}`);
   } else {
@@ -1570,7 +1707,7 @@ window.saveOrder = function(e){
       fabric: document.getElementById('orderFabric').value.trim(),
       legs: document.getElementById('orderLegs').value.trim(),
       extra: document.getElementById('orderExtra').value.trim(),
-      status: 'غير مُسلَم', createdAt: Date.now() };
+      materials, status: 'غير مُسلَم', createdAt: Date.now() };
     window.appData.orders.push(order);
     addLog("إضافة طلب", `طلب جديد للزبون ${customer.name}`);
   }
@@ -1589,6 +1726,8 @@ window.editOrder = function(id){
   document.getElementById('orderFabric').value = order.fabric;
   document.getElementById('orderLegs').value = order.legs;
   document.getElementById('orderExtra').value = order.extra || '';
+  clearOrderMaterials();
+  (order.materials||[]).forEach(m=>addMaterialRow(m.resourceId, m.qty));
   document.getElementById('orderFormTitle').textContent = 'تعديل الطلب';
   document.getElementById('orderSubmitBtn').textContent = 'تحديث الطلب';
   document.getElementById('cancelOrderEditBtn').classList.remove('hidden');
@@ -1600,6 +1739,7 @@ window.cancelOrderEdit = function(){
   document.getElementById('orderFormTitle').textContent = 'تسجيل طلب جديد';
   document.getElementById('orderSubmitBtn').textContent = '➕ إضافة الطلب';
   document.getElementById('cancelOrderEditBtn').classList.add('hidden');
+  clearOrderMaterials();
   populateOrderCustomerSelect();
   document.getElementById('orderDueDate').value = getDate();
 };
@@ -1642,6 +1782,22 @@ window.confirmDelivery = function(e){
   if(!order) return;
   let customer = window.appData.customers.find(c=>c.id===order.customerId);
   if(!customer) return;
+
+  let materials = order.materials||[];
+  let shortages = [];
+  materials.forEach(m=>{
+    let r = window.appData.resources.find(x=>x.id===m.resourceId);
+    if(!r || (r.qty||0) < m.qty) shortages.push(`${m.resourceName||'(مادة محذوفة)'}: متوفر ${r?r.qty||0:0}، مطلوب ${m.qty}`);
+  });
+  if(shortages.length){
+    askConfirm("الكمية غير كافية بالمخزون", `في نقص بالمواد التالية:\n${shortages.join('\n')}\nبدك تكمل التسليم وتخلي الرصيد سالب؟`, ()=>{
+      finalizeDelivery(order, customer, paidAmount, method, materials);
+    });
+    return;
+  }
+  finalizeDelivery(order, customer, paidAmount, method, materials);
+};
+function finalizeDelivery(order, customer, paidAmount, method, materials){
   order.status = 'مكتمل';
   if(!customer.txs) customer.txs = [];
   let tx = { id: uid(), date: getDate(), desc: `طقم: ${order.type} | قماش: ${order.fabric} | أرجل: ${order.legs}`, total: order.price, paid: paidAmount, method, createdAt: Date.now() };
@@ -1650,10 +1806,21 @@ window.confirmDelivery = function(e){
   customer.totalPaid = (customer.totalPaid||0) + tx.paid;
   window.appData.stats.totalSales += tx.total;
   window.appData.stats.totalCustPaid += tx.paid;
-  addLog("تسليم طلب", `تسليم طلب وإصدار فاتورة للزبون ${customer.name}`);
-  if(window.cloudSave) window.cloudSave.deliverOrderAtomic(order, customer.id, tx);
+
+  let materialMovs = [];
+  materials.forEach(m=>{
+    let r = window.appData.resources.find(x=>x.id===m.resourceId);
+    if(!r) return;
+    let mov = { id: uid(), date: getDate(), type: 'use', qty: m.qty, delta: -m.qty, note: `صرف تلقائي لطلب: ${order.type} (${customer.name})`, createdAt: Date.now() };
+    r.qty = (r.qty||0) - m.qty;
+    if(r._loaded) r.txs.push(mov);
+    materialMovs.push({ resourceId: r.id, movement: mov, appliedDelta: -m.qty });
+  });
+
+  addLog("تسليم طلب", `تسليم طلب وإصدار فاتورة للزبون ${customer.name}${materials.length?` (وصرف ${materials.length} مادة من المخزون)`:''}`);
+  if(window.cloudSave) window.cloudSave.deliverOrderAtomic(order, customer.id, tx, materialMovs);
   save(); closeModal('deliverModal'); showToast("✅ تم تسليم الطلب وإصدار الفاتورة.");
-};
+}
 
 /* ---------- RESOURCES ---------- */
 window.switchResourceTab = function(cat, btn){
@@ -1668,7 +1835,8 @@ window.addResourceItem = function(e){
   let name = document.getElementById('resName').value.trim();
   if(!name) return;
   let initQty = parseFloat(document.getElementById('resInitQty').value)||0;
-  let r = { id: uid(), category: cat, name, dims: document.getElementById('resDims').value.trim()||'-', note: document.getElementById('resNote').value.trim()||'-', qty: 0, txs: [], _loaded: true };
+  let minQty = parseFloat(document.getElementById('resInitMinQty').value)||0;
+  let r = { id: uid(), category: cat, name, dims: document.getElementById('resDims').value.trim()||'-', note: document.getElementById('resNote').value.trim()||'-', qty: 0, minQty, txs: [], _loaded: true };
   window.appData.resources.push(r);
   addLog("إضافة نوعية", `إضافة نوعية جديدة: ${name}`);
   if(window.cloudSave) window.cloudSave.resourceInfo(r);
@@ -1685,7 +1853,8 @@ function renderResources(){
   let cat = document.getElementById('resourceCategory').value;
   let html = '';
   (window.appData.resources||[]).filter(r=>r.category===cat).forEach(r=>{
-    html += `<tr><td class="clickable" onclick="openRes('${r.id}')">${esc(r.name)}</td><td>${esc(r.dims)}</td><td class="num" style="font-weight:800;">${r.qty||0}</td><td>${esc(r.note)}</td><td><button class="btn btn-danger" onclick="delResItem('${r.id}')">حذف</button></td></tr>`;
+    let low = (r.minQty||0) > 0 && (r.qty||0) <= r.minQty;
+    html += `<tr><td class="clickable" onclick="openRes('${r.id}')">${esc(r.name)}</td><td>${esc(r.dims)}</td><td class="num" style="font-weight:800;${low?'color:var(--bad);':''}">${r.qty||0}${low?' ⚠️':''}</td><td>${esc(r.note)}</td><td><button class="btn btn-danger" onclick="delResItem('${r.id}')">حذف</button></td></tr>`;
   });
   document.getElementById('resourcesTable').innerHTML = html || `<tr class="empty-row"><td colspan="5">لا توجد نوعيات مسجلة بهذا القسم بعد</td></tr>`;
 }
@@ -1708,6 +1877,7 @@ window.openRes = async function(id, forceReload){
   document.getElementById('resEditName').value = r.name;
   document.getElementById('resEditDims').value = r.dims;
   document.getElementById('resEditNote').value = r.note;
+  document.getElementById('resEditMinQty').value = r.minQty||0;
   document.getElementById('resListView').classList.add('hidden');
   document.getElementById('resDetailView').classList.remove('hidden');
   cancelResMovEdit();
@@ -1737,6 +1907,7 @@ window.saveResourceInfo = function(e){
   r.name = document.getElementById('resEditName').value.trim() || r.name;
   r.dims = document.getElementById('resEditDims').value.trim() || '-';
   r.note = document.getElementById('resEditNote').value.trim() || '-';
+  r.minQty = parseFloat(document.getElementById('resEditMinQty').value)||0;
   addLog("تعديل بيانات نوعية", `تعديل بيانات: ${r.name}`);
   if(window.cloudSave) window.cloudSave.resourceInfo(r);
   document.getElementById('detResTitle').textContent = r.name;
@@ -1937,15 +2108,17 @@ window.saveEmployeeAction = function(e){
   let amount = parseFloat(document.getElementById('empTxAmount').value)||0;
   let method = document.getElementById('empTxMethod').value;
   let desc = document.getElementById('empTxDesc').value.trim();
+  let date = document.getElementById('empTxDate').value || getDate();
   let txId = editId || uid();
-  let tx = { id: txId, date: getDate(), desc, amount, method, cardLoss: amount*getCardLossRate(method), createdAt: Date.now() };
-  let deltaAmount = amount, deltaCardLoss = tx.cardLoss;
+  let tx = { id: txId, date, desc, amount, method, cardLoss: amount*getCardLossRate(method), createdAt: Date.now() };
+  let deltaAmount = amount, deltaCardLoss = tx.cardLoss, oldTx = null;
   if(editId){
     let idx = em.txs.findIndex(t=>t.id===editId);
     if(idx!==-1){
-      tx.createdAt = em.txs[idx].createdAt;
-      deltaAmount = amount - (em.txs[idx].amount||0);
-      deltaCardLoss = tx.cardLoss - (em.txs[idx].cardLoss||0);
+      oldTx = em.txs[idx];
+      tx.createdAt = oldTx.createdAt;
+      deltaAmount = amount - (oldTx.amount||0);
+      deltaCardLoss = tx.cardLoss - (oldTx.cardLoss||0);
       em.txs[idx] = tx;
     }
     addLog("تعديل أجر", `تعديل أجر للموظف ${em.name}`);
@@ -1957,7 +2130,7 @@ window.saveEmployeeAction = function(e){
   em.totalCardLoss = (em.totalCardLoss||0) + deltaCardLoss;
   window.appData.stats.totalWages += deltaAmount;
   window.appData.stats.totalCardLoss += deltaCardLoss;
-  if(window.cloudSave) window.cloudSave.saveEmployeeTxAtomic(em.id, tx, deltaAmount, deltaCardLoss);
+  if(window.cloudSave) window.cloudSave.saveEmployeeTxAtomic(em.id, tx, deltaAmount, deltaCardLoss, oldTx);
   save(); openEmp(em.id, true); showToast("✅ تم الحفظ.");
 };
 window.editEmpTx = function(eid, tid){
@@ -1966,6 +2139,7 @@ window.editEmpTx = function(eid, tid){
   if(!t) return;
   document.getElementById('editEmpTxId').value = t.id;
   document.getElementById('empTxDesc').value = t.desc;
+  document.getElementById('empTxDate').value = t.date || getDate();
   document.getElementById('empTxAmount').value = t.amount;
   document.getElementById('empTxMethod').value = t.method;
   document.getElementById('empSubmitBtn').textContent = 'تحديث الأجر';
@@ -1975,6 +2149,7 @@ window.editEmpTx = function(eid, tid){
 window.cancelEmpEdit = function(){
   document.getElementById('empActionForm').reset();
   document.getElementById('editEmpTxId').value = '';
+  document.getElementById('empTxDate').value = getDate();
   document.getElementById('empSubmitBtn').textContent = '💾 تسجيل الأجر';
   document.getElementById('cancelEmpEditBtn').classList.add('hidden');
 };
@@ -1998,7 +2173,7 @@ window.delEmpTx = function(eid, tid){
     window.appData.stats.totalWages += deltaAmount;
     window.appData.stats.totalCardLoss += deltaCardLoss;
     addLog("حذف أجر", `حذف حركة أجر من ${em.name}`);
-    if(window.cloudSave) window.cloudSave.deleteEmployeeTxAtomic(eid, tid, deltaAmount, deltaCardLoss);
+    if(window.cloudSave) window.cloudSave.deleteEmployeeTxAtomic(eid, tid, deltaAmount, deltaCardLoss, t);
     save(); openEmp(eid, true); showToast("تم الحذف.");
   });
 };
@@ -2009,14 +2184,15 @@ window.addExpense = function(e){
   let amount = parseFloat(document.getElementById('expAmount').value)||0;
   let method = document.getElementById('expMethod').value;
   let title = document.getElementById('expTitle').value.trim();
-  let exp = { id: uid(), date: getDate(), title, amount, method, cardLoss: amount*getCardLossRate(method) };
+  let date = document.getElementById('expDate').value || getDate();
+  let exp = { id: uid(), date, title, amount, method, cardLoss: amount*getCardLossRate(method) };
   window.appData.expenses = window.appData.expenses || [];
   window.appData.expenses.push(exp);
   window.appData.stats.totalExpenses += exp.amount;
   window.appData.stats.totalCardLoss += exp.cardLoss;
   addLog("مصروف", `تسجيل مصروف: ${title}`);
   if(window.cloudSave) window.cloudSave.saveExpenseAtomic(exp);
-  save(); e.target.reset(); showToast("✅ تم تسجيل المصروف.");
+  save(); e.target.reset(); document.getElementById('expDate').value = getDate(); showToast("✅ تم تسجيل المصروف.");
 };
 function renderExpenses(){
   let html='', total=0;
@@ -2034,7 +2210,7 @@ window.delExp = function(id){
     window.appData.expenses = window.appData.expenses.filter(e=>e.id!==id);
     window.appData.stats.totalExpenses -= (ex.amount||0);
     window.appData.stats.totalCardLoss -= (ex.cardLoss||0);
-    if(window.cloudSave) window.cloudSave.deleteExpenseAtomic(id, ex.amount, ex.cardLoss);
+    if(window.cloudSave) window.cloudSave.deleteExpenseAtomic(id, ex.amount, ex.cardLoss, ex.date);
     save(); showToast("تم الحذف.");
   });
 };
@@ -2149,6 +2325,55 @@ window.refreshUI = function(){
   renderTools();
   renderLogs();
   loadInvoiceSettingsToForm();
+  renderLowStockAlerts();
+};
+
+function renderLowStockAlerts(){
+  const catNames = {wood:'🪵 خشب', foam:'🧽 سفنج', fabric:'🧵 قماش', hardware:'🔩 نواعم'};
+  let low = (window.appData.resources||[]).filter(r => (r.minQty||0) > 0 && (r.qty||0) <= r.minQty);
+  let panel = document.getElementById('lowStockPanel');
+  if(!low.length){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  document.getElementById('dLowStock').innerHTML = low.map(r=>`<tr class="clickable-row" onclick="goTo('s-resources'); switchResourceTabByCat('${r.category}'); openRes('${r.id}');"><td class="clickable">${catNames[r.category]||''} ${esc(r.name)}</td><td class="num" style="color:var(--bad);font-weight:800;">${r.qty||0}</td><td class="num">${r.minQty||0}</td></tr>`).join('');
+}
+window.switchResourceTabByCat = function(cat){
+  document.querySelectorAll('#resourceTabs .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.cat===cat));
+  document.getElementById('resourceCategory').value = cat;
+};
+
+/* ---------- REPORTS (monthly, from the pre-computed monthlyStats docs — no scanning) ---------- */
+function monthProfit(st){ return (st.totalSales||0) - ((st.totalPurchases||0)+(st.totalCardLoss||0)+(st.totalWages||0)+(st.totalExpenses||0)); }
+window.loadMonthReport = async function(){
+  let val = document.getElementById('reportMonthPicker').value;
+  if(!val) return;
+  document.getElementById('reportStatGrid').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--ink-soft);"><span class="spin"></span> جاري تحميل بيانات الشهر...</div>`;
+  try{
+    let st = window.cloudFetch ? await window.cloudFetch.monthStats(val) : {};
+    let profit = monthProfit(st);
+    document.getElementById('reportStatGrid').innerHTML = `
+      <div class="stat-card hero"><div class="lbl">صافي ربح الشهر</div><div class="amt num">${money(profit)}</div></div>
+      <div class="stat-card accent-ok"><div class="lbl">المبيعات</div><div class="amt num">${money(st.totalSales||0)}</div></div>
+      <div class="stat-card accent-warn"><div class="lbl">المشتريات</div><div class="amt num">${money(st.totalPurchases||0)}</div></div>
+      <div class="stat-card"><div class="lbl">الأجور</div><div class="amt num">${money(st.totalWages||0)}</div></div>
+      <div class="stat-card"><div class="lbl">المصاريف</div><div class="amt num">${money(st.totalExpenses||0)}</div></div>
+      <div class="stat-card accent-amber"><div class="lbl">خسارة عمولة الكروت</div><div class="amt num">${money(st.totalCardLoss||0)}</div></div>`;
+  }catch(e){ document.getElementById('reportStatGrid').innerHTML = `<p style="color:var(--bad);grid-column:1/-1;">تعذر تحميل تقرير الشهر.</p>`; }
+};
+window.loadReportsComparison = async function(){
+  let tbody = document.getElementById('reportsCompareTable');
+  tbody.innerHTML = `<tr class="loading-row"><td colspan="7">جاري التحميل<span class="spin"></span></td></tr>`;
+  try{
+    let now = new Date();
+    let html = '';
+    for(let i=0; i<12; i++){
+      let d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      let key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      let st = window.cloudFetch ? await window.cloudFetch.monthStats(key) : {};
+      let profit = monthProfit(st);
+      html += `<tr><td>${key}</td><td class="num">${money(st.totalSales||0)}</td><td class="num">${money(st.totalPurchases||0)}</td><td class="num">${money(st.totalWages||0)}</td><td class="num">${money(st.totalExpenses||0)}</td><td class="num">${money(st.totalCardLoss||0)}</td><td class="num" style="font-weight:800;color:${profit>=0?'var(--ok)':'var(--bad)'};">${money(profit)}</td></tr>`;
+    }
+    tbody.innerHTML = html;
+  }catch(e){ tbody.innerHTML = `<tr class="empty-row"><td colspan="7">تعذر تحميل المقارنة الشهرية</td></tr>`; }
 };
 
 /* ---------- stats integrity check / rebuild (Settings section) ---------- */
