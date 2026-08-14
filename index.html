@@ -205,7 +205,13 @@ tbody tr:hover{background:#fbf7f0;}
 @media (max-width:520px){
   form.grid-form{grid-template-columns:1fr;}
   table{font-size:12px;}
+  .material-row{flex-direction:column;align-items:stretch!important;}
+  .material-row select,.material-row input,.material-row .mat-remove-btn{width:100%;}
 }
+
+.material-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.material-row select{flex:2;min-width:140px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);}
+.material-row input{flex:1;min-width:90px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--walnut);color:#fff;padding:12px 22px;border-radius:99px;font-weight:700;font-size:13px;z-index:9999;box-shadow:0 10px 25px rgba(0,0,0,.3);display:none;}
 .confirm-box .modal-box{max-width:380px;text-align:center;}
@@ -246,6 +252,7 @@ tbody tr:hover{background:#fbf7f0;}
       <div class="nav-item" data-sec="s-customers" onclick="goTo('s-customers')"><span class="ic">👥</span>الزبائن</div>
       <div class="nav-item" data-sec="s-suppliers" onclick="goTo('s-suppliers')"><span class="ic">📦</span>الموردين</div>
       <div class="nav-item" data-sec="s-orders" onclick="goTo('s-orders')"><span class="ic">📋</span>الطلبات</div>
+      <div class="nav-item" data-sec="s-completed-orders" onclick="goTo('s-completed-orders')"><span class="ic">✅</span>الطلبات المكتملة</div>
       <div class="nav-sep">الموارد والفريق</div>
       <div class="nav-item" data-sec="s-resources" onclick="goTo('s-resources')"><span class="ic">🪵</span>المواد الخام</div>
       <div class="nav-item" data-sec="s-tools" onclick="goTo('s-tools')"><span class="ic">🛠️</span>العدة والأجهزة</div>
@@ -451,8 +458,17 @@ tbody tr:hover{background:#fbf7f0;}
         </form>
       </div>
       <div class="panel">
-        <h2>قائمة الطلبات <span class="badge-total" id="orderCountBadge">0</span></h2>
+        <h2>قائمة الطلبات غير المكتملة <span class="badge-total" id="orderCountBadge">0</span></h2>
         <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الزبون</th><th>الطقم</th><th>السعر</th><th>التسليم</th><th>القماش/الأرجل</th><th>الربح المتوقع</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="ordersTable"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== COMPLETED ORDERS ===== -->
+    <section class="section" id="s-completed-orders">
+      <div class="panel">
+        <h2>الطلبات المكتملة <span class="badge-total" id="completedOrderCountBadge">0</span></h2>
+        <p style="font-size:12px;color:var(--ink-soft);margin:-6px 0 14px;">لو صار في مشكلة بطلب مُسلَّم (رجع الزبون الطقم مثلاً)، دوس "إرجاع لغير مكتمل" — رح تنحذف فاتورته من حساب الزبون تلقائياً وترجع أي مواد اتخصمت من المخزون.</p>
+        <div class="tbl-wrap"><table><thead><tr><th>تاريخ التسليم</th><th>الزبون</th><th>الطقم</th><th>السعر</th><th>الربح المحقق</th><th>إجراء</th></tr></thead><tbody id="completedOrdersTable"></tbody></table></div>
       </div>
     </section>
 
@@ -1321,7 +1337,7 @@ function goTo(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelector(`.nav-item[data-sec="${id}"]`).classList.add('active');
-  const titles = {'s-home':'الرئيسية','s-customers':'الزبائن','s-suppliers':'الموردين','s-orders':'الطلبات','s-resources':'المواد الخام','s-tools':'العدة والأجهزة','s-employees':'الموظفين والأجور','s-expenses':'المصاريف','s-reports':'التقارير الشهرية','s-search':'البحث الشامل','s-log':'سجل العمليات','s-settings':'الإعدادات'};
+  const titles = {'s-home':'الرئيسية','s-customers':'الزبائن','s-suppliers':'الموردين','s-orders':'الطلبات','s-completed-orders':'الطلبات المكتملة','s-resources':'المواد الخام','s-tools':'العدة والأجهزة','s-employees':'الموظفين والأجور','s-expenses':'المصاريف','s-reports':'التقارير الشهرية','s-search':'البحث الشامل','s-log':'سجل العمليات','s-settings':'الإعدادات'};
   document.getElementById('pageTitle').textContent = titles[id] || '';
   document.getElementById('sidebar').classList.remove('open');
   if(id === 's-orders'){ populateOrderCustomerSelect(); if(!document.getElementById('editOrderId').value) document.getElementById('orderDueDate').value = getDate(); }
@@ -1721,9 +1737,8 @@ window.addMaterialRow = function(resourceId, qty){
   let container = document.getElementById('orderMaterialsList');
   let row = document.createElement('div');
   row.className = 'material-row';
-  row.style.cssText = 'display:flex;gap:8px;align-items:center;';
   let options = (window.appData.resources||[]).map(r=>`<option value="${r.id}" ${resourceId===r.id?'selected':''}>${CAT_LABELS[r.category]||''} ${esc(r.name)} (متوفر: ${r.qty||0} · سعر الوحدة: ${money(r.unitPrice||0)})</option>`).join('');
-  row.innerHTML = `<select style="flex:2;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;" onchange="recalcOrderCost()"><option value="">— اختر مادة —</option>${options}</select><input type="number" step="0.01" placeholder="الكمية" value="${qty||''}" oninput="recalcOrderCost()" style="flex:1;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;"><button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove(); recalcOrderCost();">✕</button>`;
+  row.innerHTML = `<select onchange="recalcOrderCost()"><option value="">— اختر مادة —</option>${options}</select><input type="number" step="0.01" placeholder="الكمية" value="${qty||''}" oninput="recalcOrderCost()"><button type="button" class="btn btn-danger btn-sm mat-remove-btn" onclick="this.parentElement.remove(); recalcOrderCost();">✕ حذف المادة</button>`;
   container.appendChild(row);
   recalcOrderCost();
 };
@@ -1828,17 +1843,29 @@ window.cancelOrderEdit = function(){
 };
 function renderOrders(){
   let html = '';
-  (window.appData.orders||[]).forEach(o=>{
-    let done = o.status === 'مكتمل';
+  let pending = (window.appData.orders||[]).filter(o=>o.status!=='مكتمل');
+  pending.forEach(o=>{
     let profit = o.expectedProfit;
     let profitCell = (profit===undefined||profit===null) ? '-' : `<span style="color:${profit>=0?'var(--ok)':'var(--bad)'};font-weight:800;">${money(profit)}</span>`;
-    html += `<tr><td>${esc(o.date)}</td><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td class="num">${money(o.price)}</td><td>${esc(o.dueDate||'-')}</td><td>${esc(o.fabric)} / ${esc(o.legs)}</td><td class="num">${profitCell}</td><td><span class="badge ${done?'b-status-done':'b-status-pending'}">${esc(o.status)}</span></td><td style="white-space:nowrap;">${!done?`<button class="btn btn-sm btn-amber" onclick="openDeliverModal('${o.id}')">تسليم</button>`:''} <button class="btn-edit" onclick="editOrder('${o.id}')">تعديل</button> <button class="btn btn-danger" onclick="delOrder('${o.id}')">حذف</button></td></tr>`;
+    html += `<tr><td>${esc(o.date)}</td><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td class="num">${money(o.price)}</td><td>${esc(o.dueDate||'-')}</td><td>${esc(o.fabric)} / ${esc(o.legs)}</td><td class="num">${profitCell}</td><td><span class="badge b-status-pending">${esc(o.status)}</span></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-amber" onclick="openDeliverModal('${o.id}')">تسليم</button> <button class="btn-edit" onclick="editOrder('${o.id}')">تعديل</button> <button class="btn btn-danger" onclick="delOrder('${o.id}')">حذف</button></td></tr>`;
   });
-  document.getElementById('ordersTable').innerHTML = html || `<tr class="empty-row"><td colspan="9">لا توجد طلبات مسجلة بعد</td></tr>`;
-  document.getElementById('orderCountBadge').textContent = (window.appData.orders||[]).length;
+  document.getElementById('ordersTable').innerHTML = html || `<tr class="empty-row"><td colspan="9">لا توجد طلبات غير مكتملة 🎉</td></tr>`;
+  document.getElementById('orderCountBadge').textContent = pending.length;
 
-  let upcoming = (window.appData.orders||[]).filter(o=>o.status!=='مكتمل').sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||'')).slice(0,6);
+  let upcoming = pending.slice().sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||'')).slice(0,6);
   document.getElementById('dUpcomingOrders').innerHTML = upcoming.length ? upcoming.map(o=>`<tr class="clickable-row" onclick="goToOrder('${o.id}')"><td class="clickable">${esc(o.customerName)}</td><td>${esc(o.type)}</td><td>${esc(o.dueDate||'-')}</td><td><span class="badge b-status-pending">${esc(o.status)}</span></td></tr>`).join('') : `<tr class="empty-row"><td colspan="4">لا توجد طلبات معلقة 🎉</td></tr>`;
+
+  renderCompletedOrders();
+}
+function renderCompletedOrders(){
+  let completed = (window.appData.orders||[]).filter(o=>o.status==='مكتمل');
+  let html = completed.map(o=>{
+    let profit = o.expectedProfit;
+    let profitCell = (profit===undefined||profit===null) ? '-' : `<span style="color:${profit>=0?'var(--ok)':'var(--bad)'};font-weight:800;">${money(profit)}</span>`;
+    return `<tr><td>${esc(o.deliveredDate||o.date)}</td><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td class="num">${money(o.price)}</td><td class="num">${profitCell}</td><td><button class="btn btn-ghost btn-sm" onclick="revertOrderDelivery('${o.id}')">↩️ إرجاع لغير مكتمل</button></td></tr>`;
+  }).join('');
+  document.getElementById('completedOrdersTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد طلبات مكتملة بعد</td></tr>`;
+  document.getElementById('completedOrderCountBadge').textContent = completed.length;
 }
 window.delOrder = function(id){
   let o = window.appData.orders.find(x=>x.id===id);
@@ -1884,6 +1911,7 @@ window.confirmDelivery = function(e){
 };
 function finalizeDelivery(order, customer, paidAmount, method, materials){
   order.status = 'مكتمل';
+  order.deliveredDate = getDate();
   if(!customer.txs) customer.txs = [];
   let tx = { id: uid(), date: getDate(), desc: `طقم: ${order.type} | قماش: ${order.fabric} | أرجل: ${order.legs}`, total: order.price, paid: paidAmount, method, createdAt: Date.now() };
   customer.txs.push(tx);
@@ -1891,8 +1919,11 @@ function finalizeDelivery(order, customer, paidAmount, method, materials){
   customer.totalPaid = (customer.totalPaid||0) + tx.paid;
   window.appData.stats.totalSales += tx.total;
   window.appData.stats.totalCustPaid += tx.paid;
+  // keep a compact record of exactly what delivery created, so it can be reverted precisely later
+  order.deliveryTx = { id: tx.id, date: tx.date, total: tx.total, paid: tx.paid };
 
   let materialMovs = [];
+  let deliveryMovements = [];
   materials.forEach(m=>{
     let r = window.appData.resources.find(x=>x.id===m.resourceId);
     if(!r) return;
@@ -1900,12 +1931,50 @@ function finalizeDelivery(order, customer, paidAmount, method, materials){
     r.qty = (r.qty||0) - m.qty;
     if(r._loaded) r.txs.push(mov);
     materialMovs.push({ resourceId: r.id, movement: mov, appliedDelta: -m.qty });
+    deliveryMovements.push({ resourceId: r.id, movId: mov.id, qty: m.qty });
   });
+  order.deliveryMovements = deliveryMovements;
 
   addLog("تسليم طلب", `تسليم طلب وإصدار فاتورة للزبون ${customer.name}${materials.length?` (وصرف ${materials.length} مادة من المخزون)`:''}`);
   if(window.cloudSave) window.cloudSave.deliverOrderAtomic(order, customer.id, tx, materialMovs);
   save(); closeModal('deliverModal'); showToast("✅ تم تسليم الطلب وإصدار الفاتورة.");
 }
+
+/* ---------- undo a delivery: moves the order back to pending, reverses the
+   invoice it created, and returns any deducted materials to stock ---------- */
+window.revertOrderDelivery = function(orderId){
+  let order = window.appData.orders.find(o=>o.id===orderId);
+  if(!order) return;
+  if(!order.deliveryTx){ showToast("⚠️ هذا الطلب قديم ولا يحتوي بيانات تسليم قابلة للإرجاع تلقائياً."); return; }
+  askConfirm("إرجاع الطلب لغير مكتمل", "رح يترجع الطلب لقائمة الطلبات الغير مكتملة، وتنحذف الفاتورة المرتبطة فيه من حساب الزبون، وترجع أي مواد اتخصمت من المخزون. متأكد؟", ()=>{
+    let customer = window.appData.customers.find(c=>c.id===order.customerId);
+    if(customer){
+      let dtx = order.deliveryTx;
+      let deltaTotal = -(dtx.total||0), deltaPaid = -(dtx.paid||0);
+      customer.totalBill = (customer.totalBill||0) + deltaTotal;
+      customer.totalPaid = (customer.totalPaid||0) + deltaPaid;
+      if(customer.txs) customer.txs = customer.txs.filter(t=>t.id !== dtx.id);
+      window.appData.stats.totalSales += deltaTotal;
+      window.appData.stats.totalCustPaid += deltaPaid;
+      if(window.cloudSave) window.cloudSave.deleteCustomerTxAtomic(customer.id, dtx.id, deltaTotal, deltaPaid, dtx);
+    }
+    (order.deliveryMovements||[]).forEach(dm=>{
+      let r = window.appData.resources.find(x=>x.id===dm.resourceId);
+      if(r){
+        r.qty = (r.qty||0) + dm.qty;
+        r._loaded = false; // force a fresh reload of its history next time it's opened
+      }
+      if(window.cloudSave) window.cloudSave.deleteResourceMovementAtomic(dm.resourceId, dm.movId, dm.qty);
+    });
+    order.status = 'غير مُسلَم';
+    delete order.deliveryTx;
+    delete order.deliveryMovements;
+    delete order.deliveredDate;
+    addLog("إلغاء تسليم طلب", `إرجاع طلب "${order.type}" للزبون ${order.customerName} لقائمة الطلبات غير المكتملة`);
+    if(window.cloudSave) window.cloudSave.order(order);
+    save(); showToast("↩️ تم إرجاع الطلب لغير مكتمل.");
+  });
+};
 
 /* ---------- RESOURCES ---------- */
 window.switchResourceTab = function(cat, btn){
