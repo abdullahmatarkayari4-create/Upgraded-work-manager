@@ -752,6 +752,35 @@ tbody tr:hover{background:#fbf7f0;}
   </div>
 </div>
 
+<!-- ============ ORDER DETAIL MODAL ============ -->
+<div id="orderDetailModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:540px;">
+    <h3 id="odTitle">تفاصيل الطلب</h3>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <span class="badge" id="odStatusBadge" style="font-size:12px;"></span>
+    </div>
+    <div style="font-size:13px;line-height:2;background:var(--cream);padding:12px 14px;border-radius:8px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;"><span><b>الزبون:</b> <span id="odCustomer"></span></span><span><b>السعر:</b> <span id="odPrice" class="num"></span></span></div>
+      <div style="display:flex;justify-content:space-between;"><span><b>تاريخ الطلب:</b> <span id="odDate"></span></span><span id="odDueRow"><b>تاريخ التسليم المتوقع:</b> <span id="odDueDate"></span></span></div>
+      <div><b>القماش:</b> <span id="odFabric"></span> &nbsp; <b>الأرجل:</b> <span id="odLegs"></span></div>
+      <div id="odExtraRow"><b>ملاحظات:</b> <span id="odExtra"></span></div>
+    </div>
+    <div id="odDeliveryBox" class="hidden" style="font-size:13px;background:var(--ok-bg);padding:12px 14px;border-radius:8px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;"><span><b>تاريخ التسليم الفعلي:</b> <span id="odDeliveredDate"></span></span><span><b>طريقة الدفع:</b> <span id="odMethod"></span></span></div>
+      <div><b>المدفوع وقت التسليم:</b> <span id="odPaid" class="num"></span></div>
+    </div>
+    <h4 style="font-size:13px;font-weight:800;color:var(--walnut);margin-bottom:8px;">المواد المستخدمة</h4>
+    <div class="tbl-wrap" style="margin-bottom:10px;"><table><thead><tr><th>المادة</th><th>الكمية</th><th>سعر الوحدة</th><th>التكلفة</th></tr></thead><tbody id="odMaterialsTable"></tbody></table></div>
+    <div style="background:var(--cream);border-radius:8px;padding:10px 14px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;"><span>إجمالي تكلفة المواد</span><span class="num" id="odMatCost" style="font-weight:800;"></span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;"><span id="odProfitLabel">الربح المتوقع</span><span class="num" id="odProfit" style="font-weight:800;"></span></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('orderDetailModal')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ CONFIRM MODAL ============ -->
 <div id="confirmModal" class="modal-overlay confirm-box">
   <div class="modal-box">
@@ -1847,7 +1876,7 @@ function renderOrders(){
   pending.forEach(o=>{
     let profit = o.expectedProfit;
     let profitCell = (profit===undefined||profit===null) ? '-' : `<span style="color:${profit>=0?'var(--ok)':'var(--bad)'};font-weight:800;">${money(profit)}</span>`;
-    html += `<tr><td>${esc(o.date)}</td><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td class="num">${money(o.price)}</td><td>${esc(o.dueDate||'-')}</td><td>${esc(o.fabric)} / ${esc(o.legs)}</td><td class="num">${profitCell}</td><td><span class="badge b-status-pending">${esc(o.status)}</span></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-amber" onclick="openDeliverModal('${o.id}')">تسليم</button> <button class="btn-edit" onclick="editOrder('${o.id}')">تعديل</button> <button class="btn btn-danger" onclick="delOrder('${o.id}')">حذف</button></td></tr>`;
+    html += `<tr><td>${esc(o.date)}</td><td>${esc(o.customerName)}</td><td class="clickable" onclick="openOrderDetail('${o.id}')">${esc(o.type)}</td><td class="num">${money(o.price)}</td><td>${esc(o.dueDate||'-')}</td><td>${esc(o.fabric)} / ${esc(o.legs)}</td><td class="num">${profitCell}</td><td><span class="badge b-status-pending">${esc(o.status)}</span></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-amber" onclick="openDeliverModal('${o.id}')">تسليم</button> <button class="btn-edit" onclick="editOrder('${o.id}')">تعديل</button> <button class="btn btn-danger" onclick="delOrder('${o.id}')">حذف</button></td></tr>`;
   });
   document.getElementById('ordersTable').innerHTML = html || `<tr class="empty-row"><td colspan="9">لا توجد طلبات غير مكتملة 🎉</td></tr>`;
   document.getElementById('orderCountBadge').textContent = pending.length;
@@ -1862,11 +1891,56 @@ function renderCompletedOrders(){
   let html = completed.map(o=>{
     let profit = o.expectedProfit;
     let profitCell = (profit===undefined||profit===null) ? '-' : `<span style="color:${profit>=0?'var(--ok)':'var(--bad)'};font-weight:800;">${money(profit)}</span>`;
-    return `<tr><td>${esc(o.deliveredDate||o.date)}</td><td>${esc(o.customerName)}</td><td>${esc(o.type)}</td><td class="num">${money(o.price)}</td><td class="num">${profitCell}</td><td><button class="btn btn-ghost btn-sm" onclick="revertOrderDelivery('${o.id}')">↩️ إرجاع لغير مكتمل</button></td></tr>`;
+    return `<tr><td>${esc(o.deliveredDate||o.date)}</td><td>${esc(o.customerName)}</td><td class="clickable" onclick="openOrderDetail('${o.id}')">${esc(o.type)}</td><td class="num">${money(o.price)}</td><td class="num">${profitCell}</td><td><button class="btn btn-ghost btn-sm" onclick="revertOrderDelivery('${o.id}')">↩️ إرجاع لغير مكتمل</button></td></tr>`;
   }).join('');
   document.getElementById('completedOrdersTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد طلبات مكتملة بعد</td></tr>`;
   document.getElementById('completedOrderCountBadge').textContent = completed.length;
 }
+window.openOrderDetail = function(orderId){
+  let o = window.appData.orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const done = o.status === 'مكتمل';
+  document.getElementById('odTitle').textContent = o.type;
+  document.getElementById('odStatusBadge').className = 'badge ' + (done ? 'b-status-done' : 'b-status-pending');
+  document.getElementById('odStatusBadge').textContent = o.status;
+  document.getElementById('odCustomer').textContent = o.customerName;
+  document.getElementById('odPrice').textContent = money(o.price);
+  document.getElementById('odDate').textContent = o.date || '-';
+  document.getElementById('odDueDate').textContent = o.dueDate || '-';
+  document.getElementById('odFabric').textContent = o.fabric || '-';
+  document.getElementById('odLegs').textContent = o.legs || '-';
+  document.getElementById('odDueRow').style.display = done ? 'none' : 'inline';
+  const extraRow = document.getElementById('odExtraRow');
+  if(o.extra){ extraRow.style.display = 'block'; document.getElementById('odExtra').textContent = o.extra; }
+  else extraRow.style.display = 'none';
+
+  const deliveryBox = document.getElementById('odDeliveryBox');
+  if(done && o.deliveryTx){
+    deliveryBox.classList.remove('hidden');
+    document.getElementById('odDeliveredDate').textContent = o.deliveredDate || o.deliveryTx.date || '-';
+    document.getElementById('odMethod').textContent = o.deliveryTx.method || '-';
+    document.getElementById('odPaid').textContent = money(o.deliveryTx.paid||0);
+  } else {
+    deliveryBox.classList.add('hidden');
+  }
+
+  const materials = o.materials || [];
+  let matHtml = materials.map(m=>{
+    const cost = (m.qty||0) * (m.unitPriceAtOrder||0);
+    return `<tr><td>${esc(m.resourceName||'(مادة محذوفة)')}</td><td class="num">${m.qty}</td><td class="num">${money(m.unitPriceAtOrder||0)}</td><td class="num">${money(cost)}</td></tr>`;
+  }).join('');
+  document.getElementById('odMaterialsTable').innerHTML = matHtml || `<tr class="empty-row"><td colspan="4">لم تُحدد مواد لهذا الطلب</td></tr>`;
+
+  const matCost = o.materialsCost !== undefined ? o.materialsCost : materials.reduce((s,m)=>s+(m.qty||0)*(m.unitPriceAtOrder||0),0);
+  const profit = o.expectedProfit !== undefined ? o.expectedProfit : (o.price - matCost);
+  document.getElementById('odMatCost').textContent = money(matCost);
+  document.getElementById('odProfitLabel').textContent = done ? 'الربح المحقق' : 'الربح المتوقع';
+  const profitEl = document.getElementById('odProfit');
+  profitEl.textContent = money(profit);
+  profitEl.style.color = profit >= 0 ? 'var(--ok)' : 'var(--bad)';
+
+  document.getElementById('orderDetailModal').classList.add('show');
+};
 window.delOrder = function(id){
   let o = window.appData.orders.find(x=>x.id===id);
   if(!o) return;
@@ -1920,7 +1994,7 @@ function finalizeDelivery(order, customer, paidAmount, method, materials){
   window.appData.stats.totalSales += tx.total;
   window.appData.stats.totalCustPaid += tx.paid;
   // keep a compact record of exactly what delivery created, so it can be reverted precisely later
-  order.deliveryTx = { id: tx.id, date: tx.date, total: tx.total, paid: tx.paid };
+  order.deliveryTx = { id: tx.id, date: tx.date, total: tx.total, paid: tx.paid, method: tx.method };
 
   let materialMovs = [];
   let deliveryMovements = [];
