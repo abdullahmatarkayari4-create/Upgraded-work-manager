@@ -191,7 +191,7 @@ tbody tr:hover{background:#fbf7f0;}
   body *{visibility:hidden!important;}
   .modal-overlay.show,.modal-overlay.show *{visibility:visible!important;}
   .modal-overlay.show{position:fixed!important;inset:0!important;background:#fff!important;z-index:99999!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;padding-top:16px!important;}
-  .modal-box{box-shadow:none!important;max-width:100%!important;}
+  .modal-box{box-shadow:none!important;max-width:100%!important;max-height:none!important;overflow:visible!important;}
   .no-print{display:none!important;}
 }
 
@@ -1972,6 +1972,7 @@ function applyOrderFieldsFromForm(order, custId, customer, price, materials, mat
 window.editOrder = function(id){
   let order = window.appData.orders.find(o=>o.id===id);
   if(!order) return;
+  goTo('s-orders'); // the order form only exists inside "الطلبات" — this is what was missing when editing from "قيد العمل"
   populateOrderCustomerSelect();
   document.getElementById('editOrderId').value = order.id;
   document.getElementById('orderCustSelect').value = order.customerId;
@@ -1984,7 +1985,7 @@ window.editOrder = function(id){
   clearOrderMaterials();
   (order.materials||[]).forEach(m=>addMaterialRow(m.resourceId, m.qty));
   recalcOrderCost();
-  document.getElementById('orderFormTitle').textContent = 'تعديل الطلب';
+  document.getElementById('orderFormTitle').textContent = order.status==='قيد العمل' ? 'تعديل الطلب (قيد العمل)' : 'تعديل الطلب';
   document.getElementById('orderSubmitBtn').textContent = 'تحديث الطلب';
   document.getElementById('cancelOrderEditBtn').classList.remove('hidden');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -2776,13 +2777,15 @@ window.printInventoryReport = function(){
   document.getElementById('invRepPrintDate').textContent = getDate();
 
   let total = 0;
-  let items = (window.appData.resources||[]).slice().sort((a,b)=> (a.category||'').localeCompare(b.category||'') || (a.name||'').localeCompare(b.name||''));
+  let items = (window.appData.resources||[])
+    .filter(r => (r.qty||0) > 0) // skip items with zero stock — nothing to report on
+    .sort((a,b)=> (a.category||'').localeCompare(b.category||'') || (a.name||'').localeCompare(b.name||''));
   let html = items.map(r=>{
     let val = (r.qty||0)*(r.unitPrice||0);
     total += val;
     return `<tr><td>${catNames[r.category]||esc(r.category)}</td><td>${esc(r.name)}</td><td class="num">${r.qty||0}</td><td class="num">${money(r.unitPrice||0)}</td><td class="num">${money(val)}</td></tr>`;
   }).join('');
-  document.getElementById('invRepTable').innerHTML = html || `<tr class="empty-row"><td colspan="5">لا توجد أصناف مسجلة بعد</td></tr>`;
+  document.getElementById('invRepTable').innerHTML = html || `<tr class="empty-row"><td colspan="5">لا توجد مواد متوفرة بالمخزون حالياً (الكل صفر)</td></tr>`;
   document.getElementById('invRepTotal').textContent = money(total);
   document.getElementById('inventoryReportModal').classList.add('show');
 };
