@@ -210,7 +210,9 @@ tbody tr:hover{background:#fbf7f0;}
 }
 
 .material-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.material-row select{flex:2;min-width:140px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);}
+.material-row .mat-cat-select{flex:1;min-width:110px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);}
+.material-row .mat-item-select{flex:2;min-width:160px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);}
+.material-row .mat-item-select:disabled{background:var(--cream);color:var(--ink-soft);}
 .material-row input{flex:1;min-width:90px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--walnut);color:#fff;padding:12px 22px;border-radius:99px;font-weight:700;font-size:13px;z-index:9999;box-shadow:0 10px 25px rgba(0,0,0,.3);display:none;}
@@ -1872,16 +1874,42 @@ window.addMaterialRow = function(resourceId, qty){
   let container = document.getElementById('orderMaterialsList');
   let row = document.createElement('div');
   row.className = 'material-row';
-  let options = (window.appData.resources||[]).map(r=>`<option value="${r.id}" ${resourceId===r.id?'selected':''}>${CAT_LABELS[r.category]||''} ${esc(r.name)} (متوفر: ${r.qty||0} · سعر الوحدة: ${money(r.unitPrice||0)})</option>`).join('');
-  row.innerHTML = `<select onchange="recalcOrderCost()"><option value="">— اختر مادة —</option>${options}</select><input type="number" step="0.01" placeholder="الكمية" value="${qty||''}" oninput="recalcOrderCost()"><button type="button" class="btn btn-danger btn-sm mat-remove-btn" onclick="this.parentElement.remove(); recalcOrderCost();">✕ حذف المادة</button>`;
+  let presetCategory = '';
+  if(resourceId){
+    let r = (window.appData.resources||[]).find(x=>x.id===resourceId);
+    if(r) presetCategory = r.category;
+  }
+  let catOptions = Object.keys(CAT_LABELS).map(c=>`<option value="${c}" ${presetCategory===c?'selected':''}>${CAT_LABELS[c]}</option>`).join('');
+  row.innerHTML = `<select class="mat-cat-select" onchange="onMatCategoryChange(this)"><option value="">— اختر القسم —</option>${catOptions}</select><select class="mat-item-select" onchange="recalcOrderCost()" disabled><option value="">— اختر القسم أولاً —</option></select><input type="number" step="0.01" placeholder="الكمية" value="${qty||''}" oninput="recalcOrderCost()"><button type="button" class="btn btn-danger btn-sm mat-remove-btn" onclick="this.parentElement.remove(); recalcOrderCost();">✕ حذف المادة</button>`;
   container.appendChild(row);
+  if(presetCategory){
+    populateMatItemSelect(row.querySelector('.mat-cat-select'), resourceId);
+  }
   recalcOrderCost();
 };
+window.onMatCategoryChange = function(catSelect){
+  populateMatItemSelect(catSelect, null);
+  recalcOrderCost();
+};
+function populateMatItemSelect(catSelect, selectedResourceId){
+  let row = catSelect.closest('.material-row');
+  let itemSelect = row.querySelector('.mat-item-select');
+  let cat = catSelect.value;
+  if(!cat){
+    itemSelect.innerHTML = `<option value="">— اختر القسم أولاً —</option>`;
+    itemSelect.disabled = true;
+    return;
+  }
+  itemSelect.disabled = false;
+  let items = (window.appData.resources||[]).filter(r=>r.category===cat);
+  let options = items.map(r=>`<option value="${r.id}" ${selectedResourceId===r.id?'selected':''}>${esc(r.name)} (متوفر: ${r.qty||0} · سعر الوحدة: ${money(r.unitPrice||0)})</option>`).join('');
+  itemSelect.innerHTML = `<option value="">— اختر مادة —</option>${options}`;
+}
 function collectOrderMaterials(){
   let rows = document.querySelectorAll('#orderMaterialsList .material-row');
   let materials = [];
   rows.forEach(row=>{
-    let sel = row.querySelector('select'), qtyInput = row.querySelector('input');
+    let sel = row.querySelector('.mat-item-select'), qtyInput = row.querySelector('input');
     let resourceId = sel.value, qty = parseFloat(qtyInput.value)||0;
     if(resourceId && qty>0){
       let r = window.appData.resources.find(x=>x.id===resourceId);
