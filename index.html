@@ -297,14 +297,25 @@ tbody tr:hover{background:#fbf7f0;}
         <div class="stat-card" style="border-top-color:#6b4f9e;"><div class="lbl">قيمة المخزون الحالي (كل الأقسام)</div><div class="amt num" id="dInventoryValue">0 ₺</div></div>
       </div>
       <div class="panel" style="border:2px solid var(--walnut);">
-        <h2 style="display:flex;align-items:center;gap:6px;">💵 التدفق النقدي الفعلي (الكاش الحقيقي بجيبك)</h2>
+        <h2 style="display:flex;align-items:center;gap:6px;justify-content:space-between;flex-wrap:wrap;">
+          <span>💵 السيولة (الكاش الفعلي بإيدك)</span>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openLiquidityEditor()">✏️ تصفير / تعديل يدوي</button>
+        </h2>
         <p style="font-size:12px;color:var(--ink-soft);margin:-6px 0 14px;">
-          مختلف عن "الميزانية الصافي" فوق: هنيك بيحسب حسب الفواتير المسجّلة (حتى لو لسا ما تحصّلت)، وهون بيحسب فعلياً شو دخل وشو طلع من جيبك — كل الوارد (فواتير مقبوضة + عربونات) وكل الخارج (موردين + أجور + مصاريف + خسارة كروت). العدة والأجهزة غير محسوبة هون، متابعة لحالها بقسمها الخاص.
+          رقم بتتحكم فيه إنت بالكامل. بيزيد تلقائياً لما يجيك دفع "كاش"، وبينقص تلقائياً لما تدفع لمورد أو أجر أو مصروف "كاش". أي دفع بطريقة "كرت" ما بيأثر فيه إطلاقاً (لأنه مش كاش بإيدك). فيك تصفره أو تعدله يدوياً بأي وقت (مثلاً لو سحبت جزء للادخار).
         </p>
         <div class="stat-grid" style="margin-bottom:0;">
-          <div class="stat-card accent-ok"><div class="lbl">إجمالي الوارد الفعلي</div><div class="amt num" id="dCashIn">0 ₺</div></div>
-          <div class="stat-card accent-bad"><div class="lbl">إجمالي الخارج الفعلي</div><div class="amt num" id="dCashOut">0 ₺</div></div>
-          <div class="stat-card hero"><div class="lbl">صافي الكاش الفعلي</div><div class="amt num" id="dNetCash">0 ₺</div></div>
+          <div class="stat-card hero"><div class="lbl">السيولة الحالية</div><div class="amt num" id="dLiquidity">0 ₺</div></div>
+        </div>
+      </div>
+      <div id="liquidityEditorBox" class="hidden panel" style="border:2px dashed var(--amber);">
+        <h2>تعديل السيولة يدوياً</h2>
+        <div class="grid-form" style="display:grid;grid-template-columns:2fr 1fr;gap:10px;align-items:end;">
+          <div class="field"><label>القيمة الجديدة للسيولة</label><input type="number" step="0.01" id="liquidityNewValue"></div>
+          <div class="field-actions" style="display:flex;gap:8px;">
+            <button type="button" class="btn btn-primary" onclick="saveLiquidityEdit()">💾 حفظ</button>
+            <button type="button" class="btn btn-ghost" onclick="document.getElementById('liquidityEditorBox').classList.add('hidden')">إلغاء</button>
+          </div>
         </div>
       </div>
       <div class="panel" id="lowStockPanel" style="display:none;">
@@ -918,6 +929,7 @@ async function loadCloudData() {
     const rootData = userSnap.data() || {};
     window.appData.invoiceSettings = rootData.invoiceSettings || {...DEFAULT_SETTINGS};
     window.appData.stats = { ...ZERO_STATS, ...(rootData.stats || {}) };
+    window.appData.cashLiquidity = rootData.cashLiquidity || 0;
 
     window.appData.customers = [];
     window.appData.suppliers = [];
@@ -1121,6 +1133,9 @@ window.cloudSave = {
     });
   },
   applyStatsDelta: async delta => { if(!currentUser) return; const payload = statsUpdatePayload(delta); if(Object.keys(payload).length) await updateDoc(rootRef(), payload); },
+  /* السيولة: رقم يتحكم فيه المستخدم بالكامل، يتعدّل تلقائياً مع كل دفعة "كاش" */
+  applyLiquidityDelta: async delta => { if(!currentUser || !delta) return; await setDoc(rootRef(), { cashLiquidity: increment(delta) }, { merge: true }); },
+  setLiquidity: async val => currentUser && setDoc(rootRef(), { cashLiquidity: val }, { merge: true }),
 
   /* ---------- ATOMIC operations ----------
      Every action that touches both an invoice AND an aggregate number (customer/
@@ -1457,6 +1472,31 @@ function getCardLossRate(method){
 }
 window.getCardLossRate = getCardLossRate;
 
+/* ---------- السيولة (liquidity) ----------
+   Only the exact "كاش" method touches this number — card and تيك چكيم never
+   do, since neither is physical cash in hand. The user can also reset/edit
+   it manually at any time (e.g. after moving part of it to savings). */
+function liquidityContribution(method, amount, sign){
+  return (method === 'كاش') ? sign * (amount||0) : 0;
+}
+function applyLocalLiquidity(delta){
+  if(!delta) return;
+  window.appData.cashLiquidity = (window.appData.cashLiquidity||0) + delta;
+  if(window.cloudSave) window.cloudSave.applyLiquidityDelta(delta);
+}
+window.openLiquidityEditor = function(){
+  document.getElementById('liquidityNewValue').value = window.appData.cashLiquidity||0;
+  document.getElementById('liquidityEditorBox').classList.remove('hidden');
+};
+window.saveLiquidityEdit = function(){
+  let val = parseFloat(document.getElementById('liquidityNewValue').value);
+  if(isNaN(val)){ showToast("⚠️ أدخل رقم صحيح."); return; }
+  window.appData.cashLiquidity = val;
+  if(window.cloudSave) window.cloudSave.setLiquidity(val);
+  document.getElementById('liquidityEditorBox').classList.add('hidden');
+  save(); showToast("✅ تم تحديث السيولة.");
+};
+
 function addLog(type, details){
   if(!window.appData.logs) window.appData.logs = [];
   let l = { id: uid(), time: getDateTimeNow(), type: type, details: details, createdAt: Date.now() };
@@ -1631,6 +1671,7 @@ window.saveCustomerAction = async function(e){
   c.totalPaid = (c.totalPaid||0) + deltaPaid;
   window.appData.stats.totalSales += deltaTotal;
   window.appData.stats.totalCustPaid += deltaPaid;
+  applyLocalLiquidity(liquidityContribution(tx.method, paid, +1) - (oldTx ? liquidityContribution(oldTx.method, oldTx.paid, +1) : 0));
   if(window.cloudSave) window.cloudSave.saveCustomerTxAtomic(c.id, tx, deltaTotal, deltaPaid, oldTx);
   save(); openCust(c.id, true); showToast("✅ تم الحفظ.");
 };
@@ -1681,6 +1722,7 @@ window.delCustTx = function(cid, tid){
     c.totalPaid = (c.totalPaid||0) + deltaPaid;
     window.appData.stats.totalSales += deltaTotal;
     window.appData.stats.totalCustPaid += deltaPaid;
+    applyLocalLiquidity(-liquidityContribution(t.method, t.paid, +1));
     addLog("حذف فاتورة زبون", `حذف حركة من حساب ${c.name}`);
     if(window.cloudSave) window.cloudSave.deleteCustomerTxAtomic(cid, tid, deltaTotal, deltaPaid, t);
     save(); openCust(cid, true); showToast("تم الحذف.");
@@ -1798,6 +1840,7 @@ window.saveSupplierAction = function(e){
   window.appData.stats.totalPurchases += deltaNet;
   window.appData.stats.totalSuppPaidNet += deltaPaidNet;
   window.appData.stats.totalCardLoss += deltaCardLoss;
+  applyLocalLiquidity(liquidityContribution(tx.method, grossPaid, -1) - (oldTx ? liquidityContribution(oldTx.method, oldTx.grossPaid, -1) : 0));
   if(window.cloudSave) window.cloudSave.saveSupplierTxAtomic(s.id, tx, deltaNet, deltaPaidNet, deltaCardLoss, oldTx);
   save(); openSupp(s.id, true); showToast("✅ تم الحفظ.");
 };
@@ -1850,6 +1893,7 @@ window.delSuppTx = function(sid, tid){
     window.appData.stats.totalPurchases += deltaNet;
     window.appData.stats.totalSuppPaidNet += deltaPaidNet;
     window.appData.stats.totalCardLoss += deltaCardLoss;
+    applyLocalLiquidity(-liquidityContribution(t.method, t.grossPaid, -1));
     addLog("حذف فاتورة مورد", `حذف حركة من ${s.name}`);
     if(window.cloudSave) window.cloudSave.deleteSupplierTxAtomic(sid, tid, deltaNet, deltaPaidNet, deltaCardLoss, t);
     save(); openSupp(sid, true); showToast("تم الحذف.");
@@ -2264,6 +2308,7 @@ async function finalizeDeliveryAsync(order, customer, paidAmount, method){
   customer.totalPaid = (customer.totalPaid||0) + tx.paid;
   window.appData.stats.totalSales += tx.total;
   window.appData.stats.totalCustPaid += tx.paid;
+  applyLocalLiquidity(liquidityContribution(tx.method, tx.paid, +1));
   // keep a compact record of exactly what delivery created, so it can be reverted precisely later
   order.deliveryTx = { id: tx.id, date: tx.date, total: tx.total, paid: tx.paid, method: tx.method, invoiceNumber: tx.invoiceNumber };
 
@@ -2294,6 +2339,7 @@ window.revertOrderDelivery = function(orderId){
       if(customer.txs) customer.txs = customer.txs.filter(t=>t.id !== dtx.id);
       window.appData.stats.totalSales += deltaTotal;
       window.appData.stats.totalCustPaid += deltaPaid;
+      applyLocalLiquidity(-liquidityContribution(dtx.method, dtx.paid, +1));
       if(window.cloudSave) window.cloudSave.deleteCustomerTxAtomic(customer.id, dtx.id, deltaTotal, deltaPaid, dtx);
     }
     if(isLegacy){
@@ -2640,6 +2686,7 @@ window.saveEmployeeAction = function(e){
   em.totalCardLoss = (em.totalCardLoss||0) + deltaCardLoss;
   window.appData.stats.totalWages += deltaAmount;
   window.appData.stats.totalCardLoss += deltaCardLoss;
+  applyLocalLiquidity(liquidityContribution(tx.method, amount, -1) - (oldTx ? liquidityContribution(oldTx.method, oldTx.amount, -1) : 0));
   if(window.cloudSave) window.cloudSave.saveEmployeeTxAtomic(em.id, tx, deltaAmount, deltaCardLoss, oldTx);
   save(); openEmp(em.id, true); showToast("✅ تم الحفظ.");
 };
@@ -2682,6 +2729,7 @@ window.delEmpTx = function(eid, tid){
     em.totalCardLoss = (em.totalCardLoss||0) + deltaCardLoss;
     window.appData.stats.totalWages += deltaAmount;
     window.appData.stats.totalCardLoss += deltaCardLoss;
+    applyLocalLiquidity(-liquidityContribution(t.method, t.amount, -1));
     addLog("حذف أجر", `حذف حركة أجر من ${em.name}`);
     if(window.cloudSave) window.cloudSave.deleteEmployeeTxAtomic(eid, tid, deltaAmount, deltaCardLoss, t);
     save(); openEmp(eid, true); showToast("تم الحذف.");
@@ -2700,6 +2748,7 @@ window.addExpense = function(e){
   window.appData.expenses.push(exp);
   window.appData.stats.totalExpenses += exp.amount;
   window.appData.stats.totalCardLoss += exp.cardLoss;
+  applyLocalLiquidity(liquidityContribution(exp.method, exp.amount, -1));
   addLog("مصروف", `تسجيل مصروف: ${title}`);
   if(window.cloudSave) window.cloudSave.saveExpenseAtomic(exp);
   save(); e.target.reset(); document.getElementById('expDate').value = getDate(); showToast("✅ تم تسجيل المصروف.");
@@ -2720,6 +2769,7 @@ window.delExp = function(id){
     window.appData.expenses = window.appData.expenses.filter(e=>e.id!==id);
     window.appData.stats.totalExpenses -= (ex.amount||0);
     window.appData.stats.totalCardLoss -= (ex.cardLoss||0);
+    applyLocalLiquidity(-liquidityContribution(ex.method, ex.amount, -1));
     if(window.cloudSave) window.cloudSave.deleteExpenseAtomic(id, ex.amount, ex.cardLoss, ex.date);
     save(); showToast("تم الحذف.");
   });
@@ -2891,13 +2941,6 @@ window.refreshUI = function(){
 
   let inventoryValue = (window.appData.resources||[]).reduce((sum,r)=>sum + (r.qty||0)*(r.unitPrice||0), 0);
 
-  // Real cash flow — what actually moved in and out of the workshop's pocket,
-  // regardless of what's billed vs collected. This is the "شو معي فعلياً" number.
-  // Tools/equipment are intentionally kept OUT of this — tracked separately.
-  let cashIn = st.totalCustPaid||0;
-  let cashOut = (st.totalSuppPaidNet||0) + totalWages + totalExp + cLoss;
-  let netCash = cashIn - cashOut;
-
   document.getElementById('dSales').textContent = money(tSales);
   document.getElementById('dPurchases').textContent = money(tPurchases);
   document.getElementById('dCustDebt').textContent = money(tCustDebt);
@@ -2906,9 +2949,7 @@ window.refreshUI = function(){
   document.getElementById('dCustCredit').textContent = money(tCustCredit);
   document.getElementById('dInventoryValue').textContent = money(inventoryValue);
   document.getElementById('dBudget').textContent = money(totalBudget);
-  document.getElementById('dCashIn').textContent = money(cashIn);
-  document.getElementById('dCashOut').textContent = money(cashOut);
-  document.getElementById('dNetCash').textContent = money(netCash);
+  document.getElementById('dLiquidity').textContent = money(window.appData.cashLiquidity||0);
 
   renderCustomers();
   renderSuppliers();
