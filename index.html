@@ -214,6 +214,10 @@ tbody tr:hover{background:#fbf7f0;}
 .material-row .mat-item-select{flex:2;min-width:160px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);}
 .material-row .mat-item-select:disabled{background:var(--cream);color:var(--ink-soft);}
 .material-row input{flex:1;min-width:90px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;}
+.mp-item{display:flex;justify-content:space-between;align-items:center;width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;text-align:right;}
+.mp-item:active{background:var(--cream);}
+.mp-item .mp-sub{font-size:11px;font-weight:600;color:var(--ink-soft);}
+.mp-chip{display:flex;justify-content:space-between;align-items:center;background:var(--cream);border-radius:8px;padding:8px 12px;font-size:13px;}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--walnut);color:#fff;padding:12px 22px;border-radius:99px;font-weight:700;font-size:13px;z-index:9999;box-shadow:0 10px 25px rgba(0,0,0,.3);display:none;}
 .confirm-box .modal-box{max-width:380px;text-align:center;}
@@ -462,9 +466,28 @@ tbody tr:hover{background:#fbf7f0;}
           <div style="grid-column:1/-1;">
             <label style="font-size:12px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">المواد المستخدمة من المخزون (اختياري — تُخصم تلقائياً وقت "بدء العمل"، مش وقت التسليم)</label>
             <div id="orderMaterialsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
-            <button type="button" class="btn btn-ghost btn-sm" onclick="addMaterialRow()">➕ إضافة مادة</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="openMaterialPicker()">➕ إضافة مادة</button>
+          </div>
+          <div style="grid-column:1/-1;margin-top:14px;">
+            <label style="font-size:12px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">تكاليف إضافية (مش من المخزون — بويا، تنر، أجرة بخاخ...) — بتنسجل تلقائياً كمصروف حقيقي وبتخصم من السيولة لو كاش</label>
+            <div id="orderExtraCostsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input id="extraCostLabel" placeholder="البيان (مثلاً: بويا وتنر)" style="flex:2;min-width:160px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;">
+              <input type="number" step="0.01" id="extraCostAmount" placeholder="المبلغ" style="flex:1;min-width:90px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;">
+              <select id="extraCostMethod" style="flex:1;min-width:110px;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);">
+                <option value="كاش">كاش</option>
+                <option value="كرت تقسيط 10%">كرت تقسيط 10%</option>
+                <option value="تيك چكيم 5%">تيك چكيم 5%</option>
+                <option value="تيك چكيم 0%">تيك چكيم 0%</option>
+              </select>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="addExtraCost()">➕ إضافة تكلفة</button>
+            </div>
+          </div>
+          <div style="grid-column:1/-1;">
             <div id="orderCostSummary" style="margin-top:12px;background:var(--cream);border-radius:8px;padding:10px 14px;display:none;">
-              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>تكلفة المواد المقدرة</span><span class="num" id="orderMatCost" style="font-weight:800;">0 ₺</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>تكلفة المواد من المخزون</span><span class="num" id="orderMatCost" style="font-weight:800;">0 ₺</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;"><span>تكاليف إضافية</span><span class="num" id="orderExtraCostTotal" style="font-weight:800;">0 ₺</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;border-top:1px dashed var(--line);padding-top:4px;"><span>إجمالي التكلفة</span><span class="num" id="orderTotalCost" style="font-weight:800;">0 ₺</span></div>
               <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;"><span>الربح المتوقع للطقم</span><span class="num" id="orderExpProfit" style="font-weight:800;">0 ₺</span></div>
             </div>
           </div>
@@ -515,59 +538,46 @@ tbody tr:hover{background:#fbf7f0;}
             <button class="tab-btn" data-cat="fabric" onclick="switchResourceTab('fabric',this)">🧵 قماش</button>
             <button class="tab-btn" data-cat="hardware" onclick="switchResourceTab('hardware',this)">🔩 نواعم/إكسسوارات</button>
           </div>
-          <form class="grid-form" onsubmit="addResourceItem(event)">
+          <form class="grid-form" onsubmit="addProductType(event)">
             <input type="hidden" id="resourceCategory" value="wood">
-            <div class="field"><label>اسم النوعية / الصنف</label><input id="resName" required placeholder="سفنج كثافة 25 / خشب زان"></div>
-            <div class="field"><label>القياسات / المواصفات</label><input id="resDims" placeholder="سمك 5سم، عرض 140سم"></div>
-            <div class="field"><label>الكمية الحالية (اختياري)</label><input type="number" step="0.01" id="resInitQty" placeholder="0"></div>
-            <div class="field"><label>حد التنبيه الأدنى (اختياري)</label><input type="number" step="0.01" id="resInitMinQty" placeholder="مثال: 20"></div>
-            <div class="field"><label>سعر الوحدة (لحساب قيمة المخزون والتكلفة)</label><input type="number" step="0.01" id="resInitUnitPrice" placeholder="0"></div>
-            <div class="field"><label>ملاحظات</label><input id="resNote" placeholder="ملاحظات..."></div>
+            <div class="field"><label>اسم النوعية (مثلاً: لونا، الاسكا...)</label><input id="prodName" required placeholder="اسم النوعية"></div>
+            <div class="field"><label>ملاحظات (اختياري)</label><input id="prodNote" placeholder="ملاحظات..."></div>
             <div class="field-actions"><button class="btn btn-primary">➕ إضافة نوعية جديدة</button></div>
           </form>
-          <div class="tbl-wrap"><table><thead><tr><th>الصنف</th><th>القياسات</th><th>الكمية المتوفرة</th><th>القيمة</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="resourcesTable"></tbody></table></div>
+          <p style="font-size:12px;color:var(--ink-soft);margin:6px 0 10px;">دوس على اسم أي نوعية لتفتحها وتضيف/تدير الألوان والدرجات جواتها.</p>
+          <div class="tbl-wrap"><table><thead><tr><th>النوعية</th><th>عدد الألوان/الدرجات</th><th>الكمية الإجمالية</th><th>القيمة</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="resourcesTable"></tbody></table></div>
         </div>
       </div>
       <div id="resDetailView" class="hidden">
         <input type="hidden" id="activeResId">
-        <button class="back-btn" onclick="backToList('res')">→ رجوع لقائمة الأصناف</button>
+        <button class="back-btn" onclick="backToList('res')">→ رجوع لقائمة النوعيات</button>
         <div class="panel">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
             <h2 id="detResTitle" style="margin:0;border:none;padding:0;">نوعية</h2>
             <div style="background:var(--cream);padding:6px 14px;border-radius:8px;font-weight:800;color:var(--walnut);">
-              الكمية الحالية: <span id="detResQty" class="num">0</span> · القيمة: <span id="detResValue" class="num">0 ₺</span>
+              الكمية الإجمالية: <span id="detResQty" class="num">0</span> · القيمة: <span id="detResValue" class="num">0 ₺</span>
             </div>
           </div>
-          <form id="resActionForm" class="grid-form" onsubmit="saveResourceMovement(event)">
-            <input type="hidden" id="editResMovId">
-            <div class="field"><label>نوع الحركة</label>
-              <select id="resMovType">
-                <option value="add">➕ إضافة كمية (شراء)</option>
-                <option value="use">➖ صرف / استخدام</option>
-              </select>
-            </div>
-            <div class="field"><label>الكمية</label><input type="number" step="0.01" id="resMovQty" required placeholder="0"></div>
-            <div class="field"><label>البيان / السبب</label><input id="resMovNote" placeholder="شراء دفعة جديدة، استخدام بطلب..."></div>
-            <div class="field-actions">
-              <button class="btn btn-primary" id="resMovSubmitBtn">💾 حفظ الحركة</button>
-              <button type="button" class="btn btn-ghost hidden" id="cancelResMovEditBtn" onclick="cancelResMovEdit()">إلغاء التعديل</button>
-            </div>
-          </form>
-        </div>
-        <div class="panel">
-          <h2>تعديل بيانات الصنف</h2>
-          <form class="grid-form" onsubmit="saveResourceInfo(event)">
-            <div class="field"><label>اسم الصنف</label><input id="resEditName" required></div>
-            <div class="field"><label>القياسات / المواصفات</label><input id="resEditDims"></div>
+          <form class="grid-form" onsubmit="saveProductInfo(event)" style="margin-bottom:0;">
+            <div class="field"><label>اسم النوعية</label><input id="resEditName" required></div>
             <div class="field"><label>ملاحظات</label><input id="resEditNote"></div>
-            <div class="field"><label>حد التنبيه الأدنى</label><input type="number" step="0.01" id="resEditMinQty" placeholder="0 = بدون تنبيه"></div>
-            <div class="field"><label>سعر الوحدة</label><input type="number" step="0.01" id="resEditUnitPrice" placeholder="0"></div>
-            <div class="field-actions"><button class="btn btn-ghost btn-sm">💾 تحديث البيانات</button></div>
+            <div class="field-actions"><button class="btn btn-ghost btn-sm">💾 تحديث الاسم/الملاحظات</button></div>
           </form>
         </div>
         <div class="panel">
-          <h2>سجل الحركات</h2>
-          <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الحركة</th><th>الكمية</th><th>البيان</th><th>الرصيد بعدها</th><th>إجراء</th></tr></thead><tbody id="resMovTable"></tbody></table></div>
+          <h2 id="variantFormTitle">إضافة لون / درجة جديدة</h2>
+          <form id="variantForm" class="grid-form" onsubmit="saveVariant(event)">
+            <input type="hidden" id="editVariantId">
+            <div class="field"><label>اسم اللون / الدرجة</label><input id="varName" required placeholder="أزرق فاتح، بيج..."></div>
+            <div class="field"><label>الكمية الحالية</label><input type="number" step="0.01" id="varQty" placeholder="0"></div>
+            <div class="field"><label>سعر الوحدة</label><input type="number" step="0.01" id="varUnitPrice" placeholder="0"></div>
+            <div class="field"><label>حد التنبيه الأدنى (اختياري)</label><input type="number" step="0.01" id="varMinQty" placeholder="0 = بدون تنبيه"></div>
+            <div class="field-actions">
+              <button class="btn btn-primary" id="varSubmitBtn">➕ إضافة اللون</button>
+              <button type="button" class="btn btn-ghost hidden" id="cancelVariantEditBtn" onclick="cancelVariantEdit()">إلغاء التعديل</button>
+            </div>
+          </form>
+          <div class="tbl-wrap"><table><thead><tr><th>اللون / الدرجة</th><th>الكمية</th><th>سعر الوحدة</th><th>القيمة</th><th>حد التنبيه</th><th>إجراء</th></tr></thead><tbody id="variantsTable"></tbody></table></div>
         </div>
       </div>
     </section>
@@ -792,6 +802,22 @@ tbody tr:hover{background:#fbf7f0;}
 </div>
 
 <!-- ============ ORDER DETAIL MODAL ============ -->
+<!-- ============ MATERIAL PICKER MODAL (قسم ← نوعية ← لون/درجة) ============ -->
+<div id="materialPickerModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:480px;">
+    <h3 id="mpTitle">اختر مادة</h3>
+    <div id="mpBreadcrumb" style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;"></div>
+    <div id="mpContent" style="display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto;"></div>
+    <div id="mpQtyBox" class="hidden" style="margin-top:14px;background:var(--cream);border-radius:8px;padding:12px 14px;">
+      <div class="field" style="margin-bottom:10px;"><label id="mpQtyLabel">الكمية</label><input type="number" step="0.01" id="mpQtyInput" placeholder="0"></div>
+      <button type="button" class="btn btn-primary" style="width:100%;" onclick="confirmMaterialPick()">✅ إضافة للطلب</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('materialPickerModal')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <div id="orderDetailModal" class="modal-overlay">
   <div class="modal-box" style="max-width:540px;">
     <h3 id="odTitle">تفاصيل الطلب</h3>
@@ -811,8 +837,14 @@ tbody tr:hover{background:#fbf7f0;}
     </div>
     <h4 style="font-size:13px;font-weight:800;color:var(--walnut);margin-bottom:8px;">المواد المستخدمة</h4>
     <div class="tbl-wrap" style="margin-bottom:10px;"><table><thead><tr><th>المادة</th><th>الكمية</th><th>سعر الوحدة</th><th>التكلفة</th></tr></thead><tbody id="odMaterialsTable"></tbody></table></div>
+    <div id="odExtraCostsBox" class="hidden">
+      <h4 style="font-size:13px;font-weight:800;color:var(--walnut);margin-bottom:8px;">تكاليف إضافية</h4>
+      <div class="tbl-wrap" style="margin-bottom:10px;"><table><thead><tr><th>البيان</th><th>المبلغ</th></tr></thead><tbody id="odExtraCostsTable"></tbody></table></div>
+    </div>
     <div style="background:var(--cream);border-radius:8px;padding:10px 14px;">
-      <div style="display:flex;justify-content:space-between;font-size:13px;"><span>إجمالي تكلفة المواد</span><span class="num" id="odMatCost" style="font-weight:800;"></span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;"><span>تكلفة المواد من المخزون</span><span class="num" id="odMatCost" style="font-weight:800;"></span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;"><span>تكاليف إضافية</span><span class="num" id="odExtraCostTotal" style="font-weight:800;"></span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;border-top:1px dashed var(--line);padding-top:4px;"><span>إجمالي التكلفة</span><span class="num" id="odTotalCost" style="font-weight:800;"></span></div>
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;"><span id="odProfitLabel">الربح المتوقع</span><span class="num" id="odProfit" style="font-weight:800;"></span></div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
@@ -955,7 +987,14 @@ async function loadCloudData() {
     suppSnap.forEach(d => { let s = d.data(); s.totalNet = s.totalNet||0; s.totalPaidNet = s.totalPaidNet||0; s.totalCardLoss = s.totalCardLoss||0; s.txs = []; s._loaded = false; window.appData.suppliers.push(s); });
     empSnap.forEach(d => { let em = d.data(); em.totalWages = em.totalWages||0; em.totalCardLoss = em.totalCardLoss||0; em.txs = []; em._loaded = false; window.appData.employees.push(em); });
     orderSnap.forEach(d => window.appData.orders.push(d.data()));
-    resSnap.forEach(d => { let r = d.data(); r.qty = r.qty||0; r.minQty = r.minQty||0; r.unitPrice = r.unitPrice||0; r.txs = []; r._loaded = false; window.appData.resources.push(r); });
+    resSnap.forEach(d => { let r = d.data(); r.note = r.note||''; r.variants = []; window.appData.resources.push(r); });
+    // variants are small in number per product — load them all eagerly (needed for
+    // the material picker + low-stock + inventory value, all of which need the
+    // full picture, not a lazily-loaded slice)
+    await Promise.all(window.appData.resources.map(async r => {
+      const vSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources", String(r.id), "variants"));
+      vSnap.forEach(d => { let v = d.data(); v.qty = v.qty||0; v.unitPrice = v.unitPrice||0; v.minQty = v.minQty||0; r.variants.push(v); });
+    }));
     toolSnap.forEach(d => window.appData.tools.push(d.data()));
     expSnap.forEach(d => window.appData.expenses.push(d.data()));
     logSnap.forEach(d => window.appData.logs.push(d.data()));
@@ -999,14 +1038,6 @@ window.cloudFetch = {
     const docs = snap.docs;
     return { items: docs.map(d => d.data()).reverse(), lastSnap: docs.length ? docs[docs.length - 1] : null, hasMore: docs.length === PAGE_SIZE };
   },
-  resourceMovementsPage: async (rid, cursorSnap) => {
-    let constraints = [orderBy("createdAt", "desc")];
-    if (cursorSnap) constraints.push(startAfter(cursorSnap));
-    constraints.push(limit(PAGE_SIZE));
-    const snap = await getDocs(query(collection(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements"), ...constraints));
-    const docs = snap.docs;
-    return { items: docs.map(d => d.data()).reverse(), lastSnap: docs.length ? docs[docs.length - 1] : null, hasMore: docs.length === PAGE_SIZE };
-  },
   /* unpaginated full fetch — only for the backup export & the integrity/recalc scan, never for on-screen viewing */
   customerTxs: async cid => {
     const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions"));
@@ -1022,12 +1053,6 @@ window.cloudFetch = {
   },
   employeeTxs: async eid => {
     const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "employees", String(eid), "transactions"));
-    let arr = []; snap.forEach(d => arr.push(d.data()));
-    arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
-    return arr;
-  },
-  resourceMovements: async rid => {
-    const snap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements"));
     let arr = []; snap.forEach(d => arr.push(d.data()));
     arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
     return arr;
@@ -1098,24 +1123,13 @@ window.cloudSave = {
 
   order: async o => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(o.id)), o),
   deleteOrder: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "orders", String(id))),
-  resource: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), { id: r.id, category: r.category, name: r.name, dims: r.dims, note: r.note, qty: r.qty||0, minQty: r.minQty||0, unitPrice: r.unitPrice||0 }),
-  resourceMovement: async (rid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements", String(t.id)), t), // backup import only
-  resourceInfo: async r => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(r.id)), { id: r.id, category: r.category, name: r.name, dims: r.dims, note: r.note, qty: r.qty||0, minQty: r.minQty||0, unitPrice: r.unitPrice||0 }, { merge: true }),
-  deleteResourceDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources", String(id), "movements")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(id))); },
-  saveResourceMovementAtomic: async (rid, mov, appliedDelta) => {
-    if(!currentUser) return;
-    const b = writeBatch(dbCloud);
-    b.set(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements", String(mov.id)), mov);
-    b.update(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid)), { qty: increment(appliedDelta||0) });
-    await b.commit();
-  },
-  deleteResourceMovementAtomic: async (rid, tid, appliedDelta) => {
-    if(!currentUser) return;
-    const b = writeBatch(dbCloud);
-    b.delete(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid), "movements", String(tid)));
-    b.update(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rid)), { qty: increment(appliedDelta||0) });
-    await b.commit();
-  },
+  /* ---------- المواد: نوعية (product) → لون/درجة (variant) ---------- */
+  product: async p => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(p.id)), { id: p.id, category: p.category, name: p.name, note: p.note||'' }, { merge: true }),
+  deleteProduct: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "resources", String(id), "variants")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(id))); },
+  variant: async (pid, v) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(pid), "variants", String(v.id)), v, { merge: true }),
+  deleteVariant: async (pid, vid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(pid), "variants", String(vid))),
+  /* تعديل كمية لون/درجة معيّنة بشكل ذرّي (يستخدم بكل عمليات الصرف/الإرجاع) */
+  adjustVariantQty: async (pid, vid, delta) => { if(!currentUser || !delta) return; await updateDoc(doc(dbCloud, "workshops", currentUser.uid, "resources", String(pid), "variants", String(vid)), { qty: increment(delta) }); },
   tool: async t => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "tools", String(t.id)), t),
   deleteTool: async id => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "tools", String(id))),
   expense: async ex => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "expenses", String(ex.id)), ex), // backup import only
@@ -1236,24 +1250,23 @@ window.cloudSave = {
   },
   /* "بدء العمل": deducts the order's materials from stock right now, in one
      atomic batch with the order's status change to قيد العمل */
-  startOrderWorkAtomic: async (order, materialMovs) => {
+  /* بدء العمل / تعديل مواد أثناء العمل: يعدّل كمية كل لون/درجة تأثر بشكل ذرّي مع تحديث الطلب بنفس العملية */
+  startOrderWorkAtomic: async (order, variantDeltas) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.set(doc(dbCloud, "workshops", currentUser.uid, "orders", String(order.id)), order);
-    (materialMovs||[]).forEach(mm => {
-      b.set(doc(dbCloud, "workshops", currentUser.uid, "resources", String(mm.resourceId), "movements", String(mm.movement.id)), mm.movement);
-      b.update(doc(dbCloud, "workshops", currentUser.uid, "resources", String(mm.resourceId)), { qty: increment(mm.appliedDelta||0) });
+    (variantDeltas||[]).forEach(vd => {
+      b.update(doc(dbCloud, "workshops", currentUser.uid, "resources", String(vd.productId), "variants", String(vd.variantId)), { qty: increment(vd.delta||0) });
     });
     await b.commit();
   },
   /* reverses "بدء العمل": restocks the materials and writes the order back to pending */
-  revertWorkAtomic: async (order, restockMovs) => {
+  revertWorkAtomic: async (order, variantDeltas) => {
     if(!currentUser) return;
     const b = writeBatch(dbCloud);
     b.set(doc(dbCloud, "workshops", currentUser.uid, "orders", String(order.id)), order);
-    (restockMovs||[]).forEach(rm => {
-      b.delete(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rm.resourceId), "movements", String(rm.movId)));
-      b.update(doc(dbCloud, "workshops", currentUser.uid, "resources", String(rm.resourceId)), { qty: increment(rm.qty||0) });
+    (variantDeltas||[]).forEach(vd => {
+      b.update(doc(dbCloud, "workshops", currentUser.uid, "resources", String(vd.productId), "variants", String(vd.variantId)), { qty: increment(vd.delta||0) });
     });
     await b.commit();
   }
@@ -1350,7 +1363,7 @@ window.exportBackup = async function () {
       for (let c of window.appData.customers) if(!c._loaded){ c.txs = await window.cloudFetch.customerTxs(c.id); c._loaded = true; }
       for (let s of window.appData.suppliers) if(!s._loaded){ s.txs = await window.cloudFetch.supplierTxs(s.id); s._loaded = true; }
       for (let em of window.appData.employees) if(!em._loaded){ em.txs = await window.cloudFetch.employeeTxs(em.id); em._loaded = true; }
-      for (let r of window.appData.resources) if(!r._loaded){ r.txs = await window.cloudFetch.resourceMovements(r.id); r._loaded = true; }
+      // variants are already fully loaded in memory at startup — nothing lazy to fetch here
     }
   }catch(e){ window.showToast("⚠️ تعذر تحميل بعض الحركات، جاري التصدير بما هو متوفر."); }
 
@@ -1376,7 +1389,7 @@ window.importBackup = function (event) {
         for (let s of imported.suppliers || []) { await window.cloudSave.supplierInfo(s); for (let t of s.txs || []) await window.cloudSave.supplierTx(s.id, t); }
         for (let em of imported.employees || []) { await window.cloudSave.employeeInfo(em); for (let t of em.txs || []) await window.cloudSave.employeeTx(em.id, t); }
         for (let o of imported.orders || []) await window.cloudSave.order(o);
-        for (let r of imported.resources || []) { await window.cloudSave.resource(r); for (let t of r.txs || []) await window.cloudSave.resourceMovement(r.id, t); }
+        for (let r of imported.resources || []) { await window.cloudSave.product(r); for (let v of r.variants || []) await window.cloudSave.variant(r.id, v); }
         for (let t of imported.tools || []) await window.cloudSave.tool(t);
         for (let ex of imported.expenses || []) await window.cloudSave.expense(ex);
         await window.cloudSave.settings();
@@ -1912,70 +1925,128 @@ function populateOrderCustomerSelect(){
   });
   if(current) sel.value = current;
 }
-/* ---------- material rows inside the order form ---------- */
+/* ---------- material picker: قسم ← نوعية ← لون/درجة (popup flow) ---------- */
 const CAT_LABELS = {wood:'🪵 خشب', foam:'🧽 سفنج', fabric:'🧵 قماش', hardware:'🔩 نواعم'};
-window.addMaterialRow = function(resourceId, qty){
-  let container = document.getElementById('orderMaterialsList');
-  let row = document.createElement('div');
-  row.className = 'material-row';
-  let presetCategory = '';
-  if(resourceId){
-    let r = (window.appData.resources||[]).find(x=>x.id===resourceId);
-    if(r) presetCategory = r.category;
-  }
-  let catOptions = Object.keys(CAT_LABELS).map(c=>`<option value="${c}" ${presetCategory===c?'selected':''}>${CAT_LABELS[c]}</option>`).join('');
-  row.innerHTML = `<select class="mat-cat-select" onchange="onMatCategoryChange(this)"><option value="">— اختر القسم —</option>${catOptions}</select><select class="mat-item-select" onchange="recalcOrderCost()" disabled><option value="">— اختر القسم أولاً —</option></select><input type="number" step="0.01" placeholder="الكمية" value="${qty||''}" oninput="recalcOrderCost()"><button type="button" class="btn btn-danger btn-sm mat-remove-btn" onclick="this.parentElement.remove(); recalcOrderCost();">✕ حذف المادة</button>`;
-  container.appendChild(row);
-  if(presetCategory){
-    populateMatItemSelect(row.querySelector('.mat-cat-select'), resourceId);
-  }
-  recalcOrderCost();
+let currentOrderMaterials = [];
+let mpCat = null, mpProductId = null, mpSelectedVariant = null;
+
+window.openMaterialPicker = function(){
+  mpCat = null; mpProductId = null; mpSelectedVariant = null;
+  document.getElementById('mpQtyBox').classList.add('hidden');
+  renderMpStep();
+  document.getElementById('materialPickerModal').classList.add('show');
 };
-window.onMatCategoryChange = function(catSelect){
-  populateMatItemSelect(catSelect, null);
-  recalcOrderCost();
-};
-function populateMatItemSelect(catSelect, selectedResourceId){
-  let row = catSelect.closest('.material-row');
-  let itemSelect = row.querySelector('.mat-item-select');
-  let cat = catSelect.value;
-  if(!cat){
-    itemSelect.innerHTML = `<option value="">— اختر القسم أولاً —</option>`;
-    itemSelect.disabled = true;
+function renderMpStep(){
+  const content = document.getElementById('mpContent');
+  const crumb = document.getElementById('mpBreadcrumb');
+  document.getElementById('mpQtyBox').classList.add('hidden');
+  if(!mpCat){
+    document.getElementById('mpTitle').textContent = 'اختر القسم';
+    crumb.textContent = '';
+    content.innerHTML = Object.keys(CAT_LABELS).map(c=>`<button type="button" class="mp-item" onclick="mpPickCategory('${c}')"><span>${CAT_LABELS[c]}</span><span>›</span></button>`).join('');
     return;
   }
-  itemSelect.disabled = false;
-  let items = (window.appData.resources||[]).filter(r=>r.category===cat);
-  let options = items.map(r=>`<option value="${r.id}" ${selectedResourceId===r.id?'selected':''}>${esc(r.name)} (متوفر: ${r.qty||0} · سعر الوحدة: ${money(r.unitPrice||0)})</option>`).join('');
-  itemSelect.innerHTML = `<option value="">— اختر مادة —</option>${options}`;
+  if(!mpProductId){
+    document.getElementById('mpTitle').textContent = 'اختر النوعية';
+    crumb.innerHTML = `<button type="button" onclick="mpBackToCategories()" style="background:none;border:none;color:var(--walnut);font-weight:700;cursor:pointer;padding:0;">→ رجوع للأقسام</button>`;
+    let products = (window.appData.resources||[]).filter(p=>p.category===mpCat);
+    if(!products.length){ content.innerHTML = `<div style="text-align:center;color:var(--ink-soft);padding:20px;">ما في نوعيات مضافة بهالقسم بعد. ضيفها من صفحة "المواد الخام".</div>`; return; }
+    content.innerHTML = products.map(p=>{
+      let totalQty = (p.variants||[]).reduce((s,v)=>s+(v.qty||0),0);
+      return `<button type="button" class="mp-item" onclick="mpPickProduct('${p.id}')"><span>${esc(p.name)}<br><span class="mp-sub">${(p.variants||[]).length} لون/درجة · إجمالي ${totalQty}</span></span><span>›</span></button>`;
+    }).join('');
+    return;
+  }
+  let product = (window.appData.resources||[]).find(p=>p.id===mpProductId);
+  document.getElementById('mpTitle').textContent = product ? product.name : 'اختر اللون/الدرجة';
+  crumb.innerHTML = `<button type="button" onclick="mpBackToProducts()" style="background:none;border:none;color:var(--walnut);font-weight:700;cursor:pointer;padding:0;">→ رجوع لـ${CAT_LABELS[mpCat]}</button>`;
+  let variants = product ? (product.variants||[]) : [];
+  if(!variants.length){ content.innerHTML = `<div style="text-align:center;color:var(--ink-soft);padding:20px;">ما في ألوان/درجات مضافة لهاي النوعية بعد.</div>`; return; }
+  content.innerHTML = variants.map(v=>`<button type="button" class="mp-item" onclick="mpPickVariant('${v.id}')"><span>${esc(v.name)}<br><span class="mp-sub">متوفر: ${v.qty||0} · سعر الوحدة: ${money(v.unitPrice||0)}</span></span><span>›</span></button>`).join('');
 }
-function collectOrderMaterials(){
-  let rows = document.querySelectorAll('#orderMaterialsList .material-row');
-  let materials = [];
-  rows.forEach(row=>{
-    let sel = row.querySelector('.mat-item-select'), qtyInput = row.querySelector('input');
-    let resourceId = sel.value, qty = parseFloat(qtyInput.value)||0;
-    if(resourceId && qty>0){
-      let r = window.appData.resources.find(x=>x.id===resourceId);
-      materials.push({ resourceId, resourceName: r?r.name:'', qty, unitPriceAtOrder: r?(r.unitPrice||0):0 });
-    }
-  });
-  return materials;
+window.mpPickCategory = function(cat){ mpCat = cat; mpProductId = null; renderMpStep(); };
+window.mpBackToCategories = function(){ mpCat = null; mpProductId = null; renderMpStep(); };
+window.mpPickProduct = function(pid){ mpProductId = pid; renderMpStep(); };
+window.mpBackToProducts = function(){ mpProductId = null; renderMpStep(); };
+window.mpPickVariant = function(vid){
+  let product = (window.appData.resources||[]).find(p=>p.id===mpProductId);
+  let variant = product ? (product.variants||[]).find(v=>v.id===vid) : null;
+  if(!variant) return;
+  mpSelectedVariant = { productId: product.id, productName: product.name, category: product.category, variantId: variant.id, variantName: variant.name, unitPrice: variant.unitPrice||0 };
+  document.getElementById('mpQtyLabel').textContent = `الكمية (متوفر: ${variant.qty||0})`;
+  document.getElementById('mpQtyInput').value = '';
+  document.getElementById('mpQtyBox').classList.remove('hidden');
+};
+window.confirmMaterialPick = function(){
+  if(!mpSelectedVariant) return;
+  let qty = parseFloat(document.getElementById('mpQtyInput').value);
+  if(!qty || qty<=0){ showToast("⚠️ أدخل كمية صحيحة."); return; }
+  let existing = currentOrderMaterials.find(m=>m.variantId===mpSelectedVariant.variantId);
+  if(existing){ existing.qty += qty; }
+  else {
+    currentOrderMaterials.push({ productId: mpSelectedVariant.productId, productName: mpSelectedVariant.productName, category: mpSelectedVariant.category, variantId: mpSelectedVariant.variantId, variantName: mpSelectedVariant.variantName, qty, unitPriceAtOrder: mpSelectedVariant.unitPrice });
+  }
+  closeModal('materialPickerModal');
+  renderOrderMaterialsList();
+  recalcOrderCost();
+};
+function renderOrderMaterialsList(){
+  const container = document.getElementById('orderMaterialsList');
+  if(!currentOrderMaterials.length){ container.innerHTML = ''; return; }
+  container.innerHTML = currentOrderMaterials.map((m,i)=>`<div class="mp-chip"><span>${CAT_LABELS[m.category]||''} ${esc(m.productName)} - ${esc(m.variantName)} × <b>${m.qty}</b></span><button type="button" class="btn btn-danger btn-sm" onclick="removeOrderMaterial(${i})">✕</button></div>`).join('');
 }
+window.removeOrderMaterial = function(idx){
+  currentOrderMaterials.splice(idx,1);
+  renderOrderMaterialsList();
+  recalcOrderCost();
+};
+function collectOrderMaterials(){ return currentOrderMaterials; }
+
+/* ---------- extra, non-inventory costs (paint, thinner, spray rental...) ---------- */
+let currentOrderExtraCosts = [];
+window.addExtraCost = function(){
+  let label = document.getElementById('extraCostLabel').value.trim();
+  let amount = parseFloat(document.getElementById('extraCostAmount').value);
+  let method = document.getElementById('extraCostMethod').value;
+  if(!label || !amount || amount<=0){ showToast("⚠️ اكتب البيان والمبلغ."); return; }
+  currentOrderExtraCosts.push({ id: uid(), label, amount, method });
+  document.getElementById('extraCostLabel').value = '';
+  document.getElementById('extraCostAmount').value = '';
+  renderOrderExtraCostsList();
+  recalcOrderCost();
+};
+window.removeExtraCost = function(idx){
+  currentOrderExtraCosts.splice(idx,1);
+  renderOrderExtraCostsList();
+  recalcOrderCost();
+};
+function renderOrderExtraCostsList(){
+  const container = document.getElementById('orderExtraCostsList');
+  if(!currentOrderExtraCosts.length){ container.innerHTML = ''; return; }
+  container.innerHTML = currentOrderExtraCosts.map((c,i)=>`<div class="mp-chip"><span>${esc(c.label)} (${esc(c.method)}) — <b>${money(c.amount)}</b></span><button type="button" class="btn btn-danger btn-sm" onclick="removeExtraCost(${i})">✕</button></div>`).join('');
+}
+function collectOrderExtraCosts(){ return currentOrderExtraCosts; }
+function clearOrderExtraCosts(){ currentOrderExtraCosts = []; renderOrderExtraCostsList(); }
+
 window.recalcOrderCost = function(){
   let materials = collectOrderMaterials();
-  let cost = materials.reduce((sum,m)=>sum + (m.qty*(m.unitPriceAtOrder||0)), 0);
+  let extraCosts = collectOrderExtraCosts();
+  let matCost = materials.reduce((sum,m)=>sum + (m.qty*(m.unitPriceAtOrder||0)), 0);
+  let extraCostTotal = extraCosts.reduce((sum,c)=>sum + (c.amount||0), 0);
+  let totalCost = matCost + extraCostTotal;
   let price = parseFloat(document.getElementById('orderPrice').value)||0;
   let summary = document.getElementById('orderCostSummary');
-  if(materials.length === 0 && !price){ summary.style.display = 'none'; return; }
+  if(materials.length === 0 && extraCosts.length === 0 && !price){ summary.style.display = 'none'; return; }
   summary.style.display = 'block';
-  document.getElementById('orderMatCost').textContent = money(cost);
-  let profit = price - cost;
+  document.getElementById('orderMatCost').textContent = money(matCost);
+  document.getElementById('orderExtraCostTotal').textContent = money(extraCostTotal);
+  document.getElementById('orderTotalCost').textContent = money(totalCost);
+  let profit = price - totalCost;
   let profitEl = document.getElementById('orderExpProfit');
   profitEl.textContent = money(profit);
   profitEl.style.color = profit >= 0 ? 'var(--ok)' : 'var(--bad)';
 };
-function clearOrderMaterials(){ document.getElementById('orderMaterialsList').innerHTML = ''; document.getElementById('orderCostSummary').style.display = 'none'; }
+function clearOrderMaterials(){ currentOrderMaterials = []; renderOrderMaterialsList(); document.getElementById('orderCostSummary').style.display = 'none'; }
 window.saveOrder = function(e){
   e.preventDefault();
   let custId = document.getElementById('orderCustSelect').value;
@@ -1983,25 +2054,29 @@ window.saveOrder = function(e){
   if(!customer){ showToast("⚠️ الرجاء اختيار زبون."); return; }
   let editId = document.getElementById('editOrderId').value;
   let materials = collectOrderMaterials();
+  let extraCosts = collectOrderExtraCosts();
   let price = parseFloat(document.getElementById('orderPrice').value)||0;
   let materialsCost = materials.reduce((sum,m)=>sum + (m.qty*(m.unitPriceAtOrder||0)), 0);
-  let expectedProfit = price - materialsCost;
+  let extraCostsTotal = extraCosts.reduce((sum,c)=>sum + (c.amount||0), 0);
+  let expectedProfit = price - materialsCost - extraCostsTotal;
   if(!window.appData.orders) window.appData.orders = [];
-  let order;
+  let order, oldExtraCosts = [];
   if(editId){
     order = window.appData.orders.find(o=>o.id===editId);
     if(!order) return;
+    oldExtraCosts = order.extraCosts || [];
 
     if(order.status === 'قيد العمل'){
       // work already started — only the DIFFERENCE in materials gets deducted/returned now
       let changes = reconcileInProgressMaterials(order, materials);
-      let shortages = changes.filter(c=>c.change>0 && (c.r.qty||0) < c.change)
-        .map(c=>`${c.r.name}: متوفر ${c.r.qty||0}، مطلوب إضافي ${c.change}`);
+      let shortages = changes.filter(c=>c.change>0 && (c.v.qty||0) < c.change)
+        .map(c=>`${c.v.name}: متوفر ${c.v.qty||0}، مطلوب إضافي ${c.change}`);
       const commitEdit = () => {
-        applyOrderFieldsFromForm(order, custId, customer, price, materials, materialsCost, expectedProfit);
-        let materialMovs = applyInProgressReconciliation(order, changes);
-        addLog("تعديل طلب قيد العمل", `تعديل طلب "${order.type}" للزبون ${customer.name}${materialMovs.length?` (تعديل ${materialMovs.length} مادة بالمخزون)`:''}`);
-        if(window.cloudSave) window.cloudSave.startOrderWorkAtomic(order, materialMovs);
+        applyOrderFieldsFromForm(order, custId, customer, price, materials, materialsCost, extraCosts, extraCostsTotal, expectedProfit);
+        reconcileOrderExtraCosts(order, oldExtraCosts, extraCosts, customer);
+        let variantDeltas = applyInProgressReconciliation(order, changes);
+        addLog("تعديل طلب قيد العمل", `تعديل طلب "${order.type}" للزبون ${customer.name}${variantDeltas.length?` (تعديل ${variantDeltas.length} مادة بالمخزون)`:''}`);
+        if(window.cloudSave) window.cloudSave.startOrderWorkAtomic(order, variantDeltas);
         save(); cancelOrderEdit(); showToast("✅ تم حفظ التعديلات وتحديث المخزون.");
       };
       if(shortages.length){
@@ -2012,7 +2087,7 @@ window.saveOrder = function(e){
       return;
     }
 
-    applyOrderFieldsFromForm(order, custId, customer, price, materials, materialsCost, expectedProfit);
+    applyOrderFieldsFromForm(order, custId, customer, price, materials, materialsCost, extraCosts, extraCostsTotal, expectedProfit);
     addLog("تعديل طلب", `تعديل طلب للزبون ${customer.name}`);
   } else {
     order = { id: uid(), date: getDate(), customerId: custId, customerName: customer.name,
@@ -2022,14 +2097,47 @@ window.saveOrder = function(e){
       fabric: document.getElementById('orderFabric').value.trim(),
       legs: document.getElementById('orderLegs').value.trim(),
       extra: document.getElementById('orderExtra').value.trim(),
-      materials, materialsCost, expectedProfit, status: 'غير مُسلَم', createdAt: Date.now() };
+      materials, materialsCost, extraCosts, extraCostsTotal, expectedProfit, status: 'غير مُسلَم', createdAt: Date.now() };
     window.appData.orders.push(order);
     addLog("إضافة طلب", `طلب جديد للزبون ${customer.name}`);
   }
+  reconcileOrderExtraCosts(order, oldExtraCosts, extraCosts, customer);
   if(window.cloudSave) window.cloudSave.order(order);
   save(); cancelOrderEdit(); showToast("✅ تم حفظ الطلب.");
 };
-function applyOrderFieldsFromForm(order, custId, customer, price, materials, materialsCost, expectedProfit){
+/* ---------- links each order "extra cost" to a REAL expense record so it
+   actually hits المصاريف, الميزانية, and السيولة (كاش only) — not just a
+   memo. On every save this simply wipes the order's previously-linked
+   expenses and recreates fresh ones from the current list; simple and
+   always correct, at the cost of a new expense id on every edit (harmless).
+   Original dates are preserved across edits by matching on the row's own id. ---------- */
+function reconcileOrderExtraCosts(order, oldExtraCosts, newExtraCosts, customer){
+  let oldDateById = {};
+  (oldExtraCosts||[]).forEach(c=>{
+    if(!c.expenseId) return;
+    let ex = window.appData.expenses.find(x=>x.id===c.expenseId);
+    if(!ex) return;
+    oldDateById[c.id] = ex.date;
+    window.appData.expenses = window.appData.expenses.filter(x=>x.id!==c.expenseId);
+    window.appData.stats.totalExpenses -= (ex.amount||0);
+    window.appData.stats.totalCardLoss -= (ex.cardLoss||0);
+    applyLocalLiquidity(-liquidityContribution(ex.method, ex.amount, -1));
+    if(window.cloudSave) window.cloudSave.deleteExpenseAtomic(ex.id, ex.amount, ex.cardLoss, ex.date);
+  });
+  (newExtraCosts||[]).forEach(c=>{
+    let date = oldDateById[c.id] || getDate();
+    let cardLoss = (c.amount||0) * getCardLossRate(c.method);
+    let exp = { id: uid(), date, title: `${c.label} — طلب ${order.type} (${customer.name})`, amount: c.amount, method: c.method, cardLoss, linkedOrderId: order.id };
+    if(!window.appData.expenses) window.appData.expenses = [];
+    window.appData.expenses.push(exp);
+    window.appData.stats.totalExpenses += exp.amount;
+    window.appData.stats.totalCardLoss += exp.cardLoss;
+    applyLocalLiquidity(liquidityContribution(exp.method, exp.amount, -1));
+    if(window.cloudSave) window.cloudSave.saveExpenseAtomic(exp);
+    c.expenseId = exp.id;
+  });
+}
+function applyOrderFieldsFromForm(order, custId, customer, price, materials, materialsCost, extraCosts, extraCostsTotal, expectedProfit){
   order.customerId = custId; order.customerName = customer.name;
   order.type = document.getElementById('orderType').value.trim();
   order.price = price;
@@ -2039,6 +2147,8 @@ function applyOrderFieldsFromForm(order, custId, customer, price, materials, mat
   order.extra = document.getElementById('orderExtra').value.trim();
   order.materials = materials;
   order.materialsCost = materialsCost;
+  order.extraCosts = extraCosts;
+  order.extraCostsTotal = extraCostsTotal;
   order.expectedProfit = expectedProfit;
 }
 window.editOrder = function(id){
@@ -2055,7 +2165,11 @@ window.editOrder = function(id){
   document.getElementById('orderLegs').value = order.legs;
   document.getElementById('orderExtra').value = order.extra || '';
   clearOrderMaterials();
-  (order.materials||[]).forEach(m=>addMaterialRow(m.resourceId, m.qty));
+  currentOrderMaterials = (order.materials||[]).map(m=>({...m}));
+  renderOrderMaterialsList();
+  clearOrderExtraCosts();
+  currentOrderExtraCosts = (order.extraCosts||[]).map(c=>({...c}));
+  renderOrderExtraCostsList();
   recalcOrderCost();
   document.getElementById('orderFormTitle').textContent = order.status==='قيد العمل' ? 'تعديل الطلب (قيد العمل)' : 'تعديل الطلب';
   document.getElementById('orderSubmitBtn').textContent = 'تحديث الطلب';
@@ -2069,6 +2183,7 @@ window.cancelOrderEdit = function(){
   document.getElementById('orderSubmitBtn').textContent = '➕ إضافة الطلب';
   document.getElementById('cancelOrderEditBtn').classList.add('hidden');
   clearOrderMaterials();
+  clearOrderExtraCosts();
   populateOrderCustomerSelect();
   document.getElementById('orderDueDate').value = getDate();
 };
@@ -2144,13 +2259,27 @@ window.openOrderDetail = function(orderId){
   const materials = o.materials || [];
   let matHtml = materials.map(m=>{
     const cost = (m.qty||0) * (m.unitPriceAtOrder||0);
-    return `<tr><td>${esc(m.resourceName||'(مادة محذوفة)')}</td><td class="num">${m.qty}</td><td class="num">${money(m.unitPriceAtOrder||0)}</td><td class="num">${money(cost)}</td></tr>`;
+    const label = m.variantName ? `${esc(m.productName||'')} - ${esc(m.variantName)}` : esc(m.resourceName||'(مادة محذوفة)');
+    return `<tr><td>${label}</td><td class="num">${m.qty}</td><td class="num">${money(m.unitPriceAtOrder||0)}</td><td class="num">${money(cost)}</td></tr>`;
   }).join('');
   document.getElementById('odMaterialsTable').innerHTML = matHtml || `<tr class="empty-row"><td colspan="4">لم تُحدد مواد لهذا الطلب</td></tr>`;
 
+  const extraCosts = o.extraCosts || [];
+  const extraCostsBox = document.getElementById('odExtraCostsBox');
+  if(extraCosts.length){
+    extraCostsBox.classList.remove('hidden');
+    document.getElementById('odExtraCostsTable').innerHTML = extraCosts.map(c=>`<tr><td>${esc(c.label)}${c.method?` <span style="color:var(--ink-soft);font-size:11px;">(${esc(c.method)})</span>`:''}</td><td class="num">${money(c.amount||0)}</td></tr>`).join('');
+  } else {
+    extraCostsBox.classList.add('hidden');
+  }
+
   const matCost = o.materialsCost !== undefined ? o.materialsCost : materials.reduce((s,m)=>s+(m.qty||0)*(m.unitPriceAtOrder||0),0);
-  const profit = o.expectedProfit !== undefined ? o.expectedProfit : (o.price - matCost);
+  const extraCostTotal = o.extraCostsTotal !== undefined ? o.extraCostsTotal : extraCosts.reduce((s,c)=>s+(c.amount||0),0);
+  const totalCost = matCost + extraCostTotal;
+  const profit = o.expectedProfit !== undefined ? o.expectedProfit : (o.price - totalCost);
   document.getElementById('odMatCost').textContent = money(matCost);
+  document.getElementById('odExtraCostTotal').textContent = money(extraCostTotal);
+  document.getElementById('odTotalCost').textContent = money(totalCost);
   document.getElementById('odProfitLabel').textContent = done ? 'الربح المحقق' : 'الربح المتوقع';
   const profitEl = document.getElementById('odProfit');
   profitEl.textContent = money(profit);
@@ -2161,7 +2290,8 @@ window.openOrderDetail = function(orderId){
 window.delOrder = function(id){
   let o = window.appData.orders.find(x=>x.id===id);
   if(!o) return;
-  askConfirm("حذف الطلب", `هل تريد حذف طلب "${o.type}" للزبون ${o.customerName}؟`, ()=>{
+  askConfirm("حذف الطلب", `هل تريد حذف طلب "${o.type}" للزبون ${o.customerName}؟ (لو فيه تكاليف إضافية مرتبطة، رح تنحذف من المصاريف وترجع للسيولة كمان)`, ()=>{
+    reconcileOrderExtraCosts(o, o.extraCosts||[], [], { name: o.customerName });
     addLog("حذف طلب", `حذف طلب للزبون ${o.customerName}`);
     window.appData.orders = window.appData.orders.filter(x=>x.id!==id);
     if(window.cloudSave) window.cloudSave.deleteOrder(id);
@@ -2175,8 +2305,9 @@ window.startOrderWork = function(orderId){
   let materials = order.materials||[];
   let shortages = [];
   materials.forEach(m=>{
-    let r = window.appData.resources.find(x=>x.id===m.resourceId);
-    if(!r || (r.qty||0) < m.qty) shortages.push(`${m.resourceName||'(مادة محذوفة)'}: متوفر ${r?r.qty||0:0}، مطلوب ${m.qty}`);
+    let p = window.appData.resources.find(x=>x.id===m.productId);
+    let v = p ? (p.variants||[]).find(x=>x.id===m.variantId) : null;
+    if(!v || (v.qty||0) < m.qty) shortages.push(`${m.productName||''} - ${m.variantName||'(مادة محذوفة)'}: متوفر ${v?v.qty||0:0}، مطلوب ${m.qty}`);
   });
   if(shortages.length){
     askConfirm("الكمية غير كافية بالمخزون", `في نقص بالمواد التالية:\n${shortages.join('\n')}\nبدك تكمل وتخلي الرصيد سالب؟`, ()=>{
@@ -2189,20 +2320,19 @@ window.startOrderWork = function(orderId){
 function commitStartWork(order, materials){
   order.status = 'قيد العمل';
   order.workStartedDate = getDate();
-  let materialMovs = [];
+  let variantDeltas = [];
   let workMovements = [];
   materials.forEach(m=>{
-    let r = window.appData.resources.find(x=>x.id===m.resourceId);
-    if(!r) return;
-    let mov = { id: uid(), date: getDate(), type: 'use', qty: m.qty, delta: -m.qty, note: `بدء العمل بطلب: ${order.type} (${order.customerName})`, createdAt: Date.now() };
-    r.qty = (r.qty||0) - m.qty;
-    if(r._loaded) r.txs.push(mov);
-    materialMovs.push({ resourceId: r.id, movement: mov, appliedDelta: -m.qty });
-    workMovements.push({ resourceId: r.id, movId: mov.id, appliedDelta: -m.qty });
+    let p = window.appData.resources.find(x=>x.id===m.productId);
+    let v = p ? (p.variants||[]).find(x=>x.id===m.variantId) : null;
+    if(!v) return;
+    v.qty = (v.qty||0) - m.qty;
+    variantDeltas.push({ productId: m.productId, variantId: m.variantId, delta: -m.qty });
+    workMovements.push({ productId: m.productId, variantId: m.variantId, appliedDelta: -m.qty });
   });
   order.workMovements = workMovements;
   addLog("بدء العمل بطلب", `بدء العمل بطلب "${order.type}" للزبون ${order.customerName}${materials.length?` (وصرف ${materials.length} مادة من المخزون)`:''}`);
-  if(window.cloudSave) window.cloudSave.startOrderWorkAtomic(order, materialMovs);
+  if(window.cloudSave) window.cloudSave.startOrderWorkAtomic(order, variantDeltas);
   save(); showToast("🛠️ تم نقل الطلب لقيد العمل وخصم المواد.");
 }
 
@@ -2211,19 +2341,20 @@ window.revertOrderToPending = function(orderId){
   let order = window.appData.orders.find(o=>o.id===orderId);
   if(!order) return;
   askConfirm("إرجاع الطلب للطلبات", "رح يترجع الطلب لقائمة الطلبات، وترجع كل المواد المخصومة (شاملة أي إضافات صارت أثناء العمل) للمخزون. متأكد؟", ()=>{
-    let restockMovs = [];
+    let variantDeltas = [];
     (order.workMovements||[]).forEach(wm=>{
       // appliedDelta is signed: negative = was deducted (must add back), positive = was already returned (must subtract back out)
       let undoAmount = -(wm.appliedDelta||0);
-      let r = window.appData.resources.find(x=>x.id===wm.resourceId);
-      if(r){ r.qty = (r.qty||0) + undoAmount; r._loaded = false; }
-      restockMovs.push({ resourceId: wm.resourceId, movId: wm.movId, qty: undoAmount });
+      let p = window.appData.resources.find(x=>x.id===wm.productId);
+      let v = p ? (p.variants||[]).find(x=>x.id===wm.variantId) : null;
+      if(v) v.qty = (v.qty||0) + undoAmount;
+      variantDeltas.push({ productId: wm.productId, variantId: wm.variantId, delta: undoAmount });
     });
     order.status = 'غير مُسلَم';
     delete order.workMovements;
     delete order.workStartedDate;
     addLog("إرجاع طلب للطلبات", `إرجاع طلب "${order.type}" للزبون ${order.customerName} وإرجاع المواد للمخزون`);
-    if(window.cloudSave) window.cloudSave.revertWorkAtomic(order, restockMovs);
+    if(window.cloudSave) window.cloudSave.revertWorkAtomic(order, variantDeltas);
     save(); showToast("↩️ تم إرجاع الطلب وإعادة المواد للمخزون.");
   });
 };
@@ -2232,45 +2363,37 @@ window.revertOrderToPending = function(orderId){
    قيد العمل: only the DIFFERENCE gets deducted/returned from stock now,
    since work already started and some materials are already committed ---------- */
 function reconcileInProgressMaterials(order, newMaterials){
-  let existingNetUsage = {}; // resourceId -> net qty currently taken out of stock for this order
+  let existingNetUsage = {}; // "productId::variantId" -> net qty currently taken out of stock for this order
   (order.workMovements||[]).forEach(wm=>{
-    existingNetUsage[wm.resourceId] = (existingNetUsage[wm.resourceId]||0) - (wm.appliedDelta||0);
+    let key = wm.productId+'::'+wm.variantId;
+    existingNetUsage[key] = (existingNetUsage[key]||0) - (wm.appliedDelta||0);
   });
   let newUsage = {};
-  newMaterials.forEach(m=>{ newUsage[m.resourceId] = (newUsage[m.resourceId]||0) + m.qty; });
+  newMaterials.forEach(m=>{ let key = m.productId+'::'+m.variantId; newUsage[key] = (newUsage[key]||0) + m.qty; });
 
-  let resourceIds = new Set([...Object.keys(existingNetUsage), ...Object.keys(newUsage)]);
-  let changes = []; // {resourceId, change, r}
-  resourceIds.forEach(resourceId=>{
-    let change = (newUsage[resourceId]||0) - (existingNetUsage[resourceId]||0);
+  let keys = new Set([...Object.keys(existingNetUsage), ...Object.keys(newUsage)]);
+  let changes = []; // {productId, variantId, change, v}
+  keys.forEach(key=>{
+    let change = (newUsage[key]||0) - (existingNetUsage[key]||0);
     if(Math.abs(change) < 1e-9) return;
-    let r = window.appData.resources.find(x=>x.id===resourceId);
-    if(!r) return;
-    changes.push({ resourceId, change, r });
+    let [productId, variantId] = key.split('::');
+    let p = window.appData.resources.find(x=>x.id===productId);
+    let v = p ? (p.variants||[]).find(x=>x.id===variantId) : null;
+    if(!v) return;
+    changes.push({ productId, variantId, change, v });
   });
   return changes;
 }
 function applyInProgressReconciliation(order, changes){
-  let materialMovs = [];
+  let variantDeltas = [];
   let newWorkMovementEntries = [];
-  changes.forEach(({resourceId, change, r})=>{
-    let mov;
-    if(change > 0){
-      mov = { id: uid(), date: getDate(), type:'use', qty: change, delta: -change, note: `إضافة مادة أثناء العمل بطلب: ${order.type} (${order.customerName})`, createdAt: Date.now() };
-      r.qty = (r.qty||0) - change;
-      materialMovs.push({ resourceId, movement: mov, appliedDelta: -change });
-      newWorkMovementEntries.push({ resourceId, movId: mov.id, appliedDelta: -change });
-    } else {
-      let ret = -change;
-      mov = { id: uid(), date: getDate(), type:'add', qty: ret, delta: ret, note: `إرجاع فائض من تعديل طلب: ${order.type} (${order.customerName})`, createdAt: Date.now() };
-      r.qty = (r.qty||0) + ret;
-      materialMovs.push({ resourceId, movement: mov, appliedDelta: ret });
-      newWorkMovementEntries.push({ resourceId, movId: mov.id, appliedDelta: ret });
-    }
-    if(r._loaded) r.txs.push(mov);
+  changes.forEach(({productId, variantId, change, v})=>{
+    v.qty = (v.qty||0) - change;
+    variantDeltas.push({ productId, variantId, delta: -change });
+    newWorkMovementEntries.push({ productId, variantId, appliedDelta: -change });
   });
   order.workMovements = [...(order.workMovements||[]), ...newWorkMovementEntries];
-  return materialMovs;
+  return variantDeltas;
 }
 
 window.openDeliverModal = function(orderId){
@@ -2327,7 +2450,7 @@ window.revertOrderDelivery = function(orderId){
   if(!order.deliveryTx){ showToast("⚠️ هذا الطلب قديم ولا يحتوي بيانات تسليم قابلة للإرجاع تلقائياً."); return; }
   const isLegacy = order.deliveryMovements && order.deliveryMovements.length;
   const msg = isLegacy
-    ? "رح يترجع الطلب لقائمة الطلبات، وتنحذف الفاتورة المرتبطة فيه من حساب الزبون، وترجع أي مواد اتخصمت من المخزون. متأكد؟"
+    ? "هذا طلب قديم جداً (من قبل إعادة هيكلة المواد) — رح يترجع لقائمة الطلبات وتنحذف الفاتورة المرتبطة فيه من حساب الزبون، بس ما رح يقدر يرجع مواده تلقائياً للمخزون (سجلها القديم غير متوافق مع الهيكل الجديد). متأكد؟"
     : "رح يترجع الطلب لـ\"قيد العمل\"، وتنحذف الفاتورة المرتبطة فيه من حساب الزبون. المواد تضل مخصومة من المخزون لأنها استُخدمت فعلياً بالتصنيع. متأكد؟";
   askConfirm("إرجاع التسليم", msg, ()=>{
     let customer = window.appData.customers.find(c=>c.id===order.customerId);
@@ -2343,19 +2466,9 @@ window.revertOrderDelivery = function(orderId){
       if(window.cloudSave) window.cloudSave.deleteCustomerTxAtomic(customer.id, dtx.id, deltaTotal, deltaPaid, dtx);
     }
     if(isLegacy){
-      (order.deliveryMovements||[]).forEach(dm=>{
-        let r = window.appData.resources.find(x=>x.id===dm.resourceId);
-        if(r){ r.qty = (r.qty||0) + dm.qty; r._loaded = false; }
-        if(window.cloudSave) window.cloudSave.deleteResourceMovementAtomic(dm.resourceId, dm.movId, dm.qty);
-      });
-      if((!order.materials || !order.materials.length)){
-        order.materials = order.deliveryMovements.map(dm=>{
-          let r = window.appData.resources.find(x=>x.id===dm.resourceId);
-          return { resourceId: dm.resourceId, resourceName: r?r.name:'', qty: dm.qty, unitPriceAtOrder: r?(r.unitPrice||0):0 };
-        });
-        order.materialsCost = order.materials.reduce((s,m)=>s+(m.qty*(m.unitPriceAtOrder||0)),0);
-        order.expectedProfit = (order.price||0) - order.materialsCost;
-      }
+      // very old orders (from before the قسم/نوعية/لون restructure) — their stored
+      // resourceId won't match anything in the current catalog anymore, so this
+      // can no longer auto-restock; it just clears the stale record safely.
       order.status = 'غير مُسلَم';
       delete order.deliveryMovements;
     } else {
@@ -2377,177 +2490,131 @@ window.switchResourceTab = function(cat, btn){
   document.getElementById('resourceCategory').value = cat;
   renderResources();
 };
-window.addResourceItem = function(e){
+window.addProductType = function(e){
   e.preventDefault();
   let cat = document.getElementById('resourceCategory').value;
-  let name = document.getElementById('resName').value.trim();
+  let name = document.getElementById('prodName').value.trim();
   if(!name) return;
-  let initQty = parseFloat(document.getElementById('resInitQty').value)||0;
-  let minQty = parseFloat(document.getElementById('resInitMinQty').value)||0;
-  let unitPrice = parseFloat(document.getElementById('resInitUnitPrice').value)||0;
-  let r = { id: uid(), category: cat, name, dims: document.getElementById('resDims').value.trim()||'-', note: document.getElementById('resNote').value.trim()||'-', qty: 0, minQty, unitPrice, txs: [], _loaded: true };
-  window.appData.resources.push(r);
+  let p = { id: uid(), category: cat, name, note: document.getElementById('prodNote').value.trim()||'', variants: [] };
+  window.appData.resources.push(p);
   addLog("إضافة نوعية", `إضافة نوعية جديدة: ${name}`);
-  if(window.cloudSave) window.cloudSave.resourceInfo(r);
-  if(initQty){
-    let mov = { id: uid(), date: getDate(), type: 'add', qty: initQty, delta: initQty, note: 'الكمية الافتتاحية', createdAt: Date.now() };
-    r.qty = initQty; r.txs.push(mov);
-    if(window.cloudSave) window.cloudSave.saveResourceMovementAtomic(r.id, mov, initQty);
-  }
+  if(window.cloudSave) window.cloudSave.product(p);
   e.target.reset();
   document.getElementById('resourceCategory').value = cat;
-  save(); showToast("✅ تمت إضافة النوعية.");
+  save(); showToast("✅ تمت إضافة النوعية. دوس عليها لتضيف الألوان/الدرجات جواتها.");
 };
 function renderResources(){
   let cat = document.getElementById('resourceCategory').value;
   let html = '', catValue = 0;
-  (window.appData.resources||[]).filter(r=>r.category===cat).forEach(r=>{
-    let low = (r.minQty||0) > 0 && (r.qty||0) <= r.minQty;
-    let val = (r.qty||0) * (r.unitPrice||0);
+  (window.appData.resources||[]).filter(p=>p.category===cat).forEach(p=>{
+    let variants = p.variants||[];
+    let totalQty = variants.reduce((s,v)=>s+(v.qty||0),0);
+    let val = variants.reduce((s,v)=>s+(v.qty||0)*(v.unitPrice||0),0);
+    let anyLow = variants.some(v=>(v.minQty||0)>0 && (v.qty||0)<=v.minQty);
     catValue += val;
-    html += `<tr><td class="clickable" onclick="openRes('${r.id}')">${esc(r.name)}</td><td>${esc(r.dims)}</td><td class="num" style="font-weight:800;${low?'color:var(--bad);':''}">${r.qty||0}${low?' ⚠️':''}</td><td class="num">${money(val)}</td><td>${esc(r.note)}</td><td><button class="btn btn-danger" onclick="delResItem('${r.id}')">حذف</button></td></tr>`;
+    html += `<tr><td class="clickable" onclick="openProduct('${p.id}')">${esc(p.name)}${anyLow?' ⚠️':''}</td><td class="num">${variants.length}</td><td class="num">${totalQty}</td><td class="num">${money(val)}</td><td>${esc(p.note)}</td><td><button class="btn btn-danger" onclick="delProduct('${p.id}')">حذف</button></td></tr>`;
   });
   document.getElementById('resourcesTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد نوعيات مسجلة بهذا القسم بعد</td></tr>`;
   document.getElementById('resCategoryValueBadge').textContent = 'قيمة القسم: ' + money(catValue);
 }
-window.delResItem = function(id){
-  let r = window.appData.resources.find(x=>x.id===id);
-  if(!r) return;
-  askConfirm("حذف النوعية", `هل تريد حذف "${r.name}" وكل سجل حركاته نهائياً؟`, ()=>{
-    addLog("حذف نوعية", `حذف نوعية: ${r.name}`);
+window.delProduct = function(id){
+  let p = window.appData.resources.find(x=>x.id===id);
+  if(!p) return;
+  askConfirm("حذف النوعية", `هل تريد حذف "${p.name}" وكل الألوان/الدرجات جواتها نهائياً؟`, ()=>{
+    addLog("حذف نوعية", `حذف نوعية: ${p.name}`);
     window.appData.resources = window.appData.resources.filter(x=>x.id!==id);
-    if(window.cloudSave) window.cloudSave.deleteResourceDoc(id);
+    if(window.cloudSave) window.cloudSave.deleteProduct(id);
     save(); showToast("تم الحذف.");
   });
 };
-window.openRes = async function(id, forceReload){
-  let r = window.appData.resources.find(x=>x.id===id);
-  if(!r) return;
-  document.getElementById('activeResId').value = r.id;
-  document.getElementById('detResTitle').textContent = r.name;
-  document.getElementById('detResQty').textContent = r.qty||0;
-  document.getElementById('detResValue').textContent = money((r.qty||0)*(r.unitPrice||0));
-  document.getElementById('resEditName').value = r.name;
-  document.getElementById('resEditDims').value = r.dims;
-  document.getElementById('resEditNote').value = r.note;
-  document.getElementById('resEditMinQty').value = r.minQty||0;
-  document.getElementById('resEditUnitPrice').value = r.unitPrice||0;
+window.openProduct = function(id){
+  let p = window.appData.resources.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('activeResId').value = p.id;
+  document.getElementById('detResTitle').textContent = p.name;
+  document.getElementById('resEditName').value = p.name;
+  document.getElementById('resEditNote').value = p.note||'';
   document.getElementById('resListView').classList.add('hidden');
   document.getElementById('resDetailView').classList.remove('hidden');
-  cancelResMovEdit();
-  if(!r._loaded || forceReload){
-    document.getElementById('resMovTable').innerHTML = `<tr class="loading-row"><td colspan="6">جاري تحميل السجل<span class="spin"></span></td></tr>`;
-    try{
-      const page = window.cloudFetch ? await window.cloudFetch.resourceMovementsPage(r.id, null) : {items:[],lastSnap:null,hasMore:false};
-      r.txs = page.items; r._cursor = page.lastSnap; r._hasMore = page.hasMore; r._loaded = true;
-    }catch(e){ showToast("تعذر تحميل السجل."); r.txs = r.txs||[]; }
-  }
-  renderResMovs(r);
+  cancelVariantEdit();
+  renderVariants(p);
 };
-window.loadMoreResMovs = async function(rid){
-  let r = window.appData.resources.find(x=>x.id===rid);
-  if(!r || !r._hasMore || !window.cloudFetch) return;
-  try{
-    const page = await window.cloudFetch.resourceMovementsPage(rid, r._cursor);
-    r.txs = [...page.items, ...r.txs];
-    r._cursor = page.lastSnap; r._hasMore = page.hasMore;
-    renderResMovs(r);
-  }catch(e){ showToast("تعذر تحميل المزيد."); }
-};
-window.saveResourceInfo = function(e){
+window.saveProductInfo = function(e){
   e.preventDefault();
-  let r = window.appData.resources.find(x=>x.id===document.getElementById('activeResId').value);
-  if(!r) return;
-  r.name = document.getElementById('resEditName').value.trim() || r.name;
-  r.dims = document.getElementById('resEditDims').value.trim() || '-';
-  r.note = document.getElementById('resEditNote').value.trim() || '-';
-  r.minQty = parseFloat(document.getElementById('resEditMinQty').value)||0;
-  r.unitPrice = parseFloat(document.getElementById('resEditUnitPrice').value)||0;
-  addLog("تعديل بيانات نوعية", `تعديل بيانات: ${r.name}`);
-  if(window.cloudSave) window.cloudSave.resourceInfo(r);
-  document.getElementById('detResTitle').textContent = r.name;
-  document.getElementById('detResValue').textContent = money((r.qty||0)*(r.unitPrice||0));
+  let p = window.appData.resources.find(x=>x.id===document.getElementById('activeResId').value);
+  if(!p) return;
+  p.name = document.getElementById('resEditName').value.trim() || p.name;
+  p.note = document.getElementById('resEditNote').value.trim();
+  addLog("تعديل بيانات نوعية", `تعديل بيانات: ${p.name}`);
+  if(window.cloudSave) window.cloudSave.product(p);
+  document.getElementById('detResTitle').textContent = p.name;
   save(); showToast("✅ تم تحديث البيانات.");
 };
-window.saveResourceMovement = function(e){
+window.saveVariant = function(e){
   e.preventDefault();
-  let r = window.appData.resources.find(x=>x.id===document.getElementById('activeResId').value);
-  if(!r) return;
-  if(!r.txs) r.txs = [];
-  let editId = document.getElementById('editResMovId').value;
-  let type = document.getElementById('resMovType').value;
-  let qty = parseFloat(document.getElementById('resMovQty').value)||0;
-  let note = document.getElementById('resMovNote').value.trim() || (type==='add'?'إضافة كمية':'صرف / استخدام');
-  let delta = type==='add' ? qty : -qty;
-
-  if(!editId && type==='use' && qty > (r.qty||0)){
-    askConfirm("الكمية غير كافية", `الكمية الحالية ${r.qty||0} بس، وطالب تصرف ${qty}. الرصيد رح يصير سالب. بدك تكمل؟`, ()=>{
-      commitResourceMovement(r, editId, type, qty, note, delta);
-    });
-    return;
-  }
-  commitResourceMovement(r, editId, type, qty, note, delta);
-};
-function commitResourceMovement(r, editId, type, qty, note, delta){
-  let txId = editId || uid();
-  let mov = { id: txId, date: getDate(), type, qty, delta, note, createdAt: Date.now() };
-  let appliedDelta = delta;
+  let p = window.appData.resources.find(x=>x.id===document.getElementById('activeResId').value);
+  if(!p) return;
+  if(!p.variants) p.variants = [];
+  let editId = document.getElementById('editVariantId').value;
+  let name = document.getElementById('varName').value.trim();
+  if(!name) return;
+  let qty = parseFloat(document.getElementById('varQty').value)||0;
+  let unitPrice = parseFloat(document.getElementById('varUnitPrice').value)||0;
+  let minQty = parseFloat(document.getElementById('varMinQty').value)||0;
+  let v = { id: editId||uid(), name, qty, unitPrice, minQty };
   if(editId){
-    let idx = r.txs.findIndex(t=>t.id===editId);
-    if(idx!==-1){ mov.createdAt = r.txs[idx].createdAt; appliedDelta = delta - (r.txs[idx].delta||0); r.txs[idx] = mov; }
-    addLog("تعديل حركة مخزون", `تعديل حركة على ${r.name}`);
+    let idx = p.variants.findIndex(x=>x.id===editId);
+    if(idx!==-1) p.variants[idx] = v;
+    addLog("تعديل لون/درجة", `تعديل ${name} ضمن ${p.name}`);
   } else {
-    r.txs.push(mov);
-    addLog(type==='add'?"إضافة كمية":"صرف كمية", `${r.name}: ${type==='add'?'+':'-'}${qty}`);
+    p.variants.push(v);
+    addLog("إضافة لون/درجة", `إضافة ${name} ضمن ${p.name}`);
   }
-  r.qty = (r.qty||0) + appliedDelta;
-  document.getElementById('detResQty').textContent = r.qty;
-  if(window.cloudSave) window.cloudSave.saveResourceMovementAtomic(r.id, mov, appliedDelta);
-  save(); openRes(r.id, true); showToast("✅ تم الحفظ.");
-}
-window.editResMov = function(rid, tid){
-  let r = window.appData.resources.find(x=>x.id===rid);
-  let t = r.txs.find(x=>x.id===tid);
-  if(!t) return;
-  document.getElementById('editResMovId').value = t.id;
-  document.getElementById('resMovType').value = t.type;
-  document.getElementById('resMovQty').value = t.qty;
-  document.getElementById('resMovNote').value = t.note;
-  document.getElementById('resMovSubmitBtn').textContent = 'تحديث الحركة';
-  document.getElementById('cancelResMovEditBtn').classList.remove('hidden');
+  if(window.cloudSave) window.cloudSave.variant(p.id, v);
+  save(); cancelVariantEdit(); renderVariants(p); showToast("✅ تم الحفظ.");
+};
+window.editVariant = function(pid, vid){
+  let p = window.appData.resources.find(x=>x.id===pid);
+  let v = p ? p.variants.find(x=>x.id===vid) : null;
+  if(!v) return;
+  document.getElementById('editVariantId').value = v.id;
+  document.getElementById('varName').value = v.name;
+  document.getElementById('varQty').value = v.qty||0;
+  document.getElementById('varUnitPrice').value = v.unitPrice||0;
+  document.getElementById('varMinQty').value = v.minQty||0;
+  document.getElementById('variantFormTitle').textContent = 'تعديل لون / درجة';
+  document.getElementById('varSubmitBtn').textContent = '💾 تحديث';
+  document.getElementById('cancelVariantEditBtn').classList.remove('hidden');
   window.scrollTo({top:0,behavior:'smooth'});
 };
-window.cancelResMovEdit = function(){
-  document.getElementById('resActionForm').reset();
-  document.getElementById('editResMovId').value = '';
-  document.getElementById('resMovType').value = 'add';
-  document.getElementById('resMovSubmitBtn').textContent = '💾 حفظ الحركة';
-  document.getElementById('cancelResMovEditBtn').classList.add('hidden');
+window.cancelVariantEdit = function(){
+  document.getElementById('variantForm').reset();
+  document.getElementById('editVariantId').value = '';
+  document.getElementById('variantFormTitle').textContent = 'إضافة لون / درجة جديدة';
+  document.getElementById('varSubmitBtn').textContent = '➕ إضافة اللون';
+  document.getElementById('cancelVariantEditBtn').classList.add('hidden');
 };
-window.delResMov = function(rid, tid){
-  askConfirm("حذف الحركة", "هل تريد حذف هذه الحركة نهائياً؟", ()=>{
-    let r = window.appData.resources.find(x=>x.id===rid);
-    let t = r.txs.find(x=>x.id===tid);
-    if(!t) return;
-    let appliedDelta = -(t.delta||0);
-    r.txs = r.txs.filter(x=>x.id!==tid);
-    r.qty = (r.qty||0) + appliedDelta;
-    document.getElementById('detResQty').textContent = r.qty;
-    addLog("حذف حركة مخزون", `حذف حركة من ${r.name}`);
-    if(window.cloudSave) window.cloudSave.deleteResourceMovementAtomic(rid, tid, appliedDelta);
-    save(); openRes(rid, true); showToast("تم الحذف.");
+window.delVariant = function(pid, vid){
+  askConfirm("حذف اللون/الدرجة", "هل تريد حذف هذا اللون/الدرجة نهائياً؟", ()=>{
+    let p = window.appData.resources.find(x=>x.id===pid);
+    if(!p) return;
+    p.variants = p.variants.filter(x=>x.id!==vid);
+    addLog("حذف لون/درجة", `حذف لون/درجة من ${p.name}`);
+    if(window.cloudSave) window.cloudSave.deleteVariant(pid, vid);
+    save(); renderVariants(p); showToast("تم الحذف.");
   });
 };
-function renderResMovs(r){
-  let txs = r.txs||[];
-  let bals = computeBalancesAsc(txs, r.qty||0, t => t.delta||0);
-  let html = '';
-  if(r._hasMore) html += `<tr><td colspan="6" style="text-align:center;padding:10px;"><button class="btn btn-ghost btn-sm" onclick="loadMoreResMovs('${r.id}')">⬆️ تحميل حركات أقدم</button></td></tr>`;
-  txs.forEach((t,i)=>{
-    let bal = bals[i];
-    html += `<tr><td>${esc(t.date)}</td><td><span class="badge ${t.type==='add'?'b-cash':'b-card'}">${t.type==='add'?'➕ إضافة':'➖ صرف'}</span></td><td class="num">${t.qty}</td><td>${esc(t.note)}</td><td class="num" style="font-weight:800;">${bal}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="editResMov('${r.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delResMov('${r.id}','${t.id}')">حذف</button></td></tr>`;
-  });
-  document.getElementById('resMovTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد حركات مسجلة بعد</td></tr>`;
+function renderVariants(p){
+  let variants = p.variants||[];
+  let totalQty = variants.reduce((s,v)=>s+(v.qty||0),0);
+  let totalVal = variants.reduce((s,v)=>s+(v.qty||0)*(v.unitPrice||0),0);
+  document.getElementById('detResQty').textContent = totalQty;
+  document.getElementById('detResValue').textContent = money(totalVal);
+  let html = variants.map(v=>{
+    let low = (v.minQty||0)>0 && (v.qty||0)<=v.minQty;
+    return `<tr><td>${esc(v.name)}${low?' ⚠️':''}</td><td class="num" style="font-weight:800;${low?'color:var(--bad);':''}">${v.qty||0}</td><td class="num">${money(v.unitPrice||0)}</td><td class="num">${money((v.qty||0)*(v.unitPrice||0))}</td><td class="num">${v.minQty||0}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="editVariant('${p.id}','${v.id}')">تعديل</button> <button class="btn btn-danger" onclick="delVariant('${p.id}','${v.id}')">حذف</button></td></tr>`;
+  }).join('');
+  document.getElementById('variantsTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد ألوان/درجات مضافة بعد</td></tr>`;
 }
 
 /* ---------- TOOLS ---------- */
@@ -2848,20 +2915,23 @@ window.printCustomerStatement = async function(){
 
 /* printable full inventory value report — every category, every item */
 window.printInventoryReport = function(){
-  const catNames = {wood:'🪵 خشب', foam:'🧽 سفنج', fabric:'🧵 قماش', hardware:'🔩 نواعم'};
   let s = window.appData.invoiceSettings || { title:"ورشة الأثاث والتنجيد", phone:"+905000000000", address:"تركيا" };
   document.getElementById('invRepHeaderTitle').textContent = s.title;
   document.getElementById('invRepHeaderAddress').textContent = s.address;
   document.getElementById('invRepPrintDate').textContent = getDate();
 
   let total = 0;
-  let items = (window.appData.resources||[])
-    .filter(r => (r.qty||0) > 0) // skip items with zero stock — nothing to report on
-    .sort((a,b)=> (a.category||'').localeCompare(b.category||'') || (a.name||'').localeCompare(b.name||''));
-  let html = items.map(r=>{
-    let val = (r.qty||0)*(r.unitPrice||0);
+  let rows = [];
+  (window.appData.resources||[]).forEach(p=>{
+    (p.variants||[]).filter(v=>(v.qty||0)>0).forEach(v=>{
+      rows.push({ category: p.category, productName: p.name, variantName: v.name, qty: v.qty||0, unitPrice: v.unitPrice||0 });
+    });
+  });
+  rows.sort((a,b)=> (a.category||'').localeCompare(b.category||'') || (a.productName||'').localeCompare(b.productName||'') || (a.variantName||'').localeCompare(b.variantName||''));
+  let html = rows.map(row=>{
+    let val = row.qty*row.unitPrice;
     total += val;
-    return `<tr><td>${catNames[r.category]||esc(r.category)}</td><td>${esc(r.name)}</td><td class="num">${r.qty||0}</td><td class="num">${money(r.unitPrice||0)}</td><td class="num">${money(val)}</td></tr>`;
+    return `<tr><td>${CAT_LABELS[row.category]||esc(row.category)}</td><td>${esc(row.productName)} - ${esc(row.variantName)}</td><td class="num">${row.qty}</td><td class="num">${money(row.unitPrice)}</td><td class="num">${money(val)}</td></tr>`;
   }).join('');
   document.getElementById('invRepTable').innerHTML = html || `<tr class="empty-row"><td colspan="5">لا توجد مواد متوفرة بالمخزون حالياً (الكل صفر)</td></tr>`;
   document.getElementById('invRepTotal').textContent = money(total);
@@ -2939,7 +3009,7 @@ window.refreshUI = function(){
     if(bal > 0) tSuppDebt += bal;
   });
 
-  let inventoryValue = (window.appData.resources||[]).reduce((sum,r)=>sum + (r.qty||0)*(r.unitPrice||0), 0);
+  let inventoryValue = (window.appData.resources||[]).reduce((sum,p)=>sum + (p.variants||[]).reduce((s,v)=>s+(v.qty||0)*(v.unitPrice||0),0), 0);
 
   document.getElementById('dSales').textContent = money(tSales);
   document.getElementById('dPurchases').textContent = money(tPurchases);
@@ -2963,12 +3033,16 @@ window.refreshUI = function(){
 };
 
 function renderLowStockAlerts(){
-  const catNames = {wood:'🪵 خشب', foam:'🧽 سفنج', fabric:'🧵 قماش', hardware:'🔩 نواعم'};
-  let low = (window.appData.resources||[]).filter(r => (r.minQty||0) > 0 && (r.qty||0) <= r.minQty);
+  let low = [];
+  (window.appData.resources||[]).forEach(p=>{
+    (p.variants||[]).forEach(v=>{
+      if((v.minQty||0) > 0 && (v.qty||0) <= v.minQty) low.push({ productId: p.id, productName: p.name, category: p.category, variantId: v.id, variantName: v.name, qty: v.qty||0, minQty: v.minQty||0 });
+    });
+  });
   let panel = document.getElementById('lowStockPanel');
   if(!low.length){ panel.style.display = 'none'; return; }
   panel.style.display = 'block';
-  document.getElementById('dLowStock').innerHTML = low.map(r=>`<tr class="clickable-row" onclick="goTo('s-resources'); switchResourceTabByCat('${r.category}'); openRes('${r.id}');"><td class="clickable">${catNames[r.category]||''} ${esc(r.name)}</td><td class="num" style="color:var(--bad);font-weight:800;">${r.qty||0}</td><td class="num">${r.minQty||0}</td></tr>`).join('');
+  document.getElementById('dLowStock').innerHTML = low.map(item=>`<tr class="clickable-row" onclick="goTo('s-resources'); switchResourceTabByCat('${item.category}'); openProduct('${item.productId}');"><td class="clickable">${CAT_LABELS[item.category]||''} ${esc(item.productName)} - ${esc(item.variantName)}</td><td class="num" style="color:var(--bad);font-weight:800;">${item.qty}</td><td class="num">${item.minQty}</td></tr>`).join('');
 }
 window.switchResourceTabByCat = function(cat){
   document.querySelectorAll('#resourceTabs .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.cat===cat));
