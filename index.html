@@ -569,7 +569,7 @@ tbody tr:hover{background:#fbf7f0;}
           <form id="variantForm" class="grid-form" onsubmit="saveVariant(event)">
             <input type="hidden" id="editVariantId">
             <div class="field"><label>اسم اللون / الدرجة</label><input id="varName" required placeholder="أزرق فاتح، بيج..."></div>
-            <div class="field"><label>الكمية الحالية</label><input type="number" step="0.01" id="varQty" placeholder="0"></div>
+            <div class="field"><label id="varQtyLabel">الكمية الابتدائية</label><input type="number" step="0.01" id="varQty" placeholder="0"></div>
             <div class="field"><label>سعر الوحدة</label><input type="number" step="0.01" id="varUnitPrice" placeholder="0"></div>
             <div class="field"><label>حد التنبيه الأدنى (اختياري)</label><input type="number" step="0.01" id="varMinQty" placeholder="0 = بدون تنبيه"></div>
             <div class="field-actions">
@@ -803,6 +803,32 @@ tbody tr:hover{background:#fbf7f0;}
 
 <!-- ============ ORDER DETAIL MODAL ============ -->
 <!-- ============ MATERIAL PICKER MODAL (قسم ← نوعية ← لون/درجة) ============ -->
+<!-- ============ STOCK ADJUST MODAL (إضافة/سحب كمية سريع) ============ -->
+<!-- ============ EDIT MATERIAL QTY MODAL (تعديل كمية مادة بالطلب) ============ -->
+<div id="editMatQtyModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:380px;">
+    <h3>تعديل الكمية</h3>
+    <p id="emqSubtitle" style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;"></p>
+    <div class="field" style="margin-bottom:16px;"><label>الكمية الجديدة</label><input type="number" step="0.01" id="emqAmount" placeholder="0"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button type="button" class="btn btn-primary" onclick="confirmEditMaterialQty()">✅ حفظ</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('editMatQtyModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div id="stockAdjustModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:380px;">
+    <h3 id="saTitle">إضافة كمية</h3>
+    <p id="saSubtitle" style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;"></p>
+    <div class="field" style="margin-bottom:16px;"><label id="saAmountLabel">الكمية</label><input type="number" step="0.01" id="saAmount" placeholder="0" autofocus></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button type="button" class="btn btn-primary" id="saConfirmBtn" onclick="confirmStockAdjust()">✅ تأكيد</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('stockAdjustModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 <div id="materialPickerModal" class="modal-overlay">
   <div class="modal-box" style="max-width:480px;">
     <h3 id="mpTitle">اختر مادة</h3>
@@ -1993,12 +2019,32 @@ window.confirmMaterialPick = function(){
 function renderOrderMaterialsList(){
   const container = document.getElementById('orderMaterialsList');
   if(!currentOrderMaterials.length){ container.innerHTML = ''; return; }
-  container.innerHTML = currentOrderMaterials.map((m,i)=>`<div class="mp-chip"><span>${CAT_LABELS[m.category]||''} ${esc(m.productName)} - ${esc(m.variantName)} × <b>${m.qty}</b></span><button type="button" class="btn btn-danger btn-sm" onclick="removeOrderMaterial(${i})">✕</button></div>`).join('');
+  container.innerHTML = currentOrderMaterials.map((m,i)=>`<div class="mp-chip"><span>${CAT_LABELS[m.category]||''} ${esc(m.productName)} - ${esc(m.variantName)} × <b>${m.qty}</b></span><span style="display:flex;gap:4px;"><button type="button" class="btn-edit" style="padding:4px 8px;font-size:12px;" onclick="openEditMaterialQty(${i})">✏️</button><button type="button" class="btn btn-danger btn-sm" onclick="removeOrderMaterial(${i})">✕</button></span></div>`).join('');
 }
 window.removeOrderMaterial = function(idx){
   currentOrderMaterials.splice(idx,1);
   renderOrderMaterialsList();
   recalcOrderCost();
+};
+let pendingEditMatIdx = null;
+window.openEditMaterialQty = function(idx){
+  let m = currentOrderMaterials[idx];
+  if(!m) return;
+  pendingEditMatIdx = idx;
+  document.getElementById('emqSubtitle').textContent = `${CAT_LABELS[m.category]||''} ${m.productName} - ${m.variantName} (الكمية الحالية: ${m.qty})`;
+  document.getElementById('emqAmount').value = m.qty;
+  document.getElementById('editMatQtyModal').classList.add('show');
+  setTimeout(()=>document.getElementById('emqAmount').focus(), 50);
+};
+window.confirmEditMaterialQty = function(){
+  if(pendingEditMatIdx===null) return;
+  let newQty = parseFloat(document.getElementById('emqAmount').value);
+  if(!newQty || newQty<=0){ showToast("⚠️ أدخل كمية صحيحة."); return; }
+  currentOrderMaterials[pendingEditMatIdx].qty = newQty;
+  closeModal('editMatQtyModal');
+  renderOrderMaterialsList();
+  recalcOrderCost();
+  pendingEditMatIdx = null;
 };
 function collectOrderMaterials(){ return currentOrderMaterials; }
 
@@ -2582,6 +2628,7 @@ window.editVariant = function(pid, vid){
   document.getElementById('varQty').value = v.qty||0;
   document.getElementById('varUnitPrice').value = v.unitPrice||0;
   document.getElementById('varMinQty').value = v.minQty||0;
+  document.getElementById('varQtyLabel').textContent = 'الكمية (تعديل مباشر)';
   document.getElementById('variantFormTitle').textContent = 'تعديل لون / درجة';
   document.getElementById('varSubmitBtn').textContent = '💾 تحديث';
   document.getElementById('cancelVariantEditBtn').classList.remove('hidden');
@@ -2590,6 +2637,7 @@ window.editVariant = function(pid, vid){
 window.cancelVariantEdit = function(){
   document.getElementById('variantForm').reset();
   document.getElementById('editVariantId').value = '';
+  document.getElementById('varQtyLabel').textContent = 'الكمية الابتدائية';
   document.getElementById('variantFormTitle').textContent = 'إضافة لون / درجة جديدة';
   document.getElementById('varSubmitBtn').textContent = '➕ إضافة اللون';
   document.getElementById('cancelVariantEditBtn').classList.add('hidden');
@@ -2612,9 +2660,52 @@ function renderVariants(p){
   document.getElementById('detResValue').textContent = money(totalVal);
   let html = variants.map(v=>{
     let low = (v.minQty||0)>0 && (v.qty||0)<=v.minQty;
-    return `<tr><td>${esc(v.name)}${low?' ⚠️':''}</td><td class="num" style="font-weight:800;${low?'color:var(--bad);':''}">${v.qty||0}</td><td class="num">${money(v.unitPrice||0)}</td><td class="num">${money((v.qty||0)*(v.unitPrice||0))}</td><td class="num">${v.minQty||0}</td><td style="white-space:nowrap;"><button class="btn-edit" onclick="editVariant('${p.id}','${v.id}')">تعديل</button> <button class="btn btn-danger" onclick="delVariant('${p.id}','${v.id}')">حذف</button></td></tr>`;
+    return `<tr><td>${esc(v.name)}${low?' ⚠️':''}</td><td class="num" style="font-weight:800;${low?'color:var(--bad);':''}">${v.qty||0}</td><td class="num">${money(v.unitPrice||0)}</td><td class="num">${money((v.qty||0)*(v.unitPrice||0))}</td><td class="num">${v.minQty||0}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-amber" onclick="openStockAdjust('${p.id}','${v.id}','add')">➕ إضافة</button> <button class="btn btn-sm btn-ghost" onclick="openStockAdjust('${p.id}','${v.id}','sub')">➖ سحب</button> <button class="btn-edit" onclick="editVariant('${p.id}','${v.id}')">✏️ تعديل</button> <button class="btn btn-danger" onclick="delVariant('${p.id}','${v.id}')">حذف</button></td></tr>`;
   }).join('');
   document.getElementById('variantsTable').innerHTML = html || `<tr class="empty-row"><td colspan="6">لا توجد ألوان/درجات مضافة بعد</td></tr>`;
+}
+
+/* ---------- quick add/withdraw stock: adjusts the current quantity by a
+   delta, instead of overwriting it — for routine restocking/usage. Full
+   direct editing (overwrite name/qty/price/minQty) stays available via
+   "✏️ تعديل" exactly like before. ---------- */
+let pendingStockAdjust = null;
+window.openStockAdjust = function(pid, vid, mode){
+  let p = window.appData.resources.find(x=>x.id===pid);
+  let v = p ? (p.variants||[]).find(x=>x.id===vid) : null;
+  if(!v) return;
+  pendingStockAdjust = { pid, vid, mode };
+  document.getElementById('saTitle').textContent = mode==='add' ? '➕ إضافة كمية' : '➖ سحب كمية';
+  document.getElementById('saSubtitle').textContent = `${p.name} - ${v.name} — الكمية الحالية: ${v.qty||0}`;
+  document.getElementById('saAmountLabel').textContent = mode==='add' ? 'الكمية المضافة' : 'الكمية المسحوبة';
+  document.getElementById('saAmount').value = '';
+  document.getElementById('saConfirmBtn').className = mode==='add' ? 'btn btn-primary' : 'btn btn-danger';
+  document.getElementById('stockAdjustModal').classList.add('show');
+  setTimeout(()=>document.getElementById('saAmount').focus(), 50);
+};
+window.confirmStockAdjust = function(){
+  if(!pendingStockAdjust) return;
+  let { pid, vid, mode } = pendingStockAdjust;
+  let amount = parseFloat(document.getElementById('saAmount').value);
+  if(!amount || amount<=0){ showToast("⚠️ أدخل كمية صحيحة."); return; }
+  let p = window.appData.resources.find(x=>x.id===pid);
+  let v = p ? (p.variants||[]).find(x=>x.id===vid) : null;
+  if(!v) return;
+  let delta = mode==='add' ? amount : -amount;
+  if(mode==='sub' && amount > (v.qty||0)){
+    askConfirm("الكمية غير كافية", `الكمية الحالية ${v.qty||0} بس، وطالب تسحب ${amount}. الرصيد رح يصير سالب. بدك تكمل؟`, ()=>{
+      commitStockAdjust(p, v, delta, mode, amount);
+    });
+    return;
+  }
+  commitStockAdjust(p, v, delta, mode, amount);
+};
+function commitStockAdjust(p, v, delta, mode, amount){
+  v.qty = (v.qty||0) + delta;
+  addLog(mode==='add'?"إضافة كمية":"سحب كمية", `${mode==='add'?'+':'-'}${amount} على ${p.name} - ${v.name}`);
+  if(window.cloudSave) window.cloudSave.adjustVariantQty(p.id, v.id, delta);
+  save(); closeModal('stockAdjustModal'); renderVariants(p); showToast("✅ تم التحديث.");
+  pendingStockAdjust = null;
 }
 
 /* ---------- TOOLS ---------- */
