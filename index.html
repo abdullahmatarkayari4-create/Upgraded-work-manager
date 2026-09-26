@@ -444,7 +444,18 @@ tbody tr:hover{background:#fbf7f0;}
           </form>
         </div>
         <div class="panel">
-          <h2>سجل حركات المورد</h2>
+          <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>سجل حركات المورد</span>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer;">
+              <input type="checkbox" id="suppSplitToggle" onchange="toggleSuppSplitAccounts()"> فعّل حسابين منفصلين (كاش/كرت) لهذا المورد فقط
+            </label>
+          </h2>
+          <div class="tabs hidden" id="suppMethodTabs" style="margin-bottom:10px;">
+            <button class="tab-btn active" data-method="all" onclick="switchSuppTab('all',this)">الكل</button>
+            <button class="tab-btn" data-method="كاش" onclick="switchSuppTab('كاش',this)">💵 كاش</button>
+            <button class="tab-btn" data-method="كرت" onclick="switchSuppTab('كرت',this)">💳 كرت</button>
+          </div>
+          <div id="suppFilterBalanceBox" class="hidden" style="background:var(--cream);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-weight:800;color:var(--walnut);"></div>
           <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>البيان</th><th>الفاتورة</th><th>المسدد</th><th>الطريقة</th><th>خسارة الكرت</th><th>الباقي</th><th>إجراء</th></tr></thead><tbody id="supplierTxTable"></tbody></table></div>
         </div>
       </div>
@@ -1137,7 +1148,7 @@ window.cloudSave = {
   deleteCustomerTx: async (cid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(tid))),
   deleteCustomerDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(id))); },
 
-  supplierInfo: async s => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { id: s.id, name: s.name, phone: s.phone, totalNet: s.totalNet||0, totalPaidNet: s.totalPaidNet||0, totalCardLoss: s.totalCardLoss||0 }),
+  supplierInfo: async s => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { id: s.id, name: s.name, phone: s.phone, totalNet: s.totalNet||0, totalPaidNet: s.totalPaidNet||0, totalCardLoss: s.totalCardLoss||0, splitAccounts: s.splitAccounts||false }),
   supplierTx: async (sid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(t.id)), t), // backup import only
   deleteSupplierTx: async (sid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(tid))),
   deleteSupplierDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(id))); },
@@ -1801,14 +1812,24 @@ window.delSupp = function(id){
     save(); showToast("تم حذف المورد.");
   });
 };
+let activeSuppFilter = 'all';
+let activeSuppFilterId = null;
 window.openSupp = async function(id, forceReload){
   let s = window.appData.suppliers.find(x=>x.id===id);
   if(!s) return;
+  if(id !== activeSuppFilterId){
+    activeSuppFilter = 'all';
+    activeSuppFilterId = id;
+    document.querySelectorAll('#suppMethodTabs .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.method==='all'));
+    document.getElementById('suppFilterBalanceBox').classList.add('hidden');
+  }
   document.getElementById('activeSuppId').value = s.id;
   document.getElementById('detSuppTitle').textContent = 'حساب المورد: ' + s.name;
   document.getElementById('suppListView').classList.add('hidden');
   document.getElementById('suppDetailView').classList.remove('hidden');
   cancelSuppEdit();
+  document.getElementById('suppSplitToggle').checked = !!s.splitAccounts;
+  document.getElementById('suppMethodTabs').classList.toggle('hidden', !s.splitAccounts);
   if(!s._loaded || forceReload){
     document.getElementById('supplierTxTable').innerHTML = `<tr class="loading-row"><td colspan="8">جاري تحميل الفواتير<span class="spin"></span></td></tr>`;
     try{
@@ -1816,7 +1837,23 @@ window.openSupp = async function(id, forceReload){
       s.txs = page.items; s._cursor = page.lastSnap; s._hasMore = page.hasMore; s._loaded = true;
     }catch(e){ showToast("تعذر تحميل الفواتير."); s.txs = s.txs||[]; }
   }
-  renderSuppTxs(s);
+  if(activeSuppFilter === 'all' || !s.splitAccounts) renderSuppTxs(s);
+  else await applySuppFilter(s, activeSuppFilter);
+};
+window.toggleSuppSplitAccounts = function(){
+  let s = window.appData.suppliers.find(x=>x.id===document.getElementById('activeSuppId').value);
+  if(!s) return;
+  s.splitAccounts = document.getElementById('suppSplitToggle').checked;
+  document.getElementById('suppMethodTabs').classList.toggle('hidden', !s.splitAccounts);
+  if(!s.splitAccounts){
+    activeSuppFilter = 'all';
+    document.querySelectorAll('#suppMethodTabs .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.method==='all'));
+    document.getElementById('suppFilterBalanceBox').classList.add('hidden');
+    renderSuppTxs(s);
+  }
+  addLog("إعداد مورد", `${s.splitAccounts?'تفعيل':'إلغاء'} الحسابات المنفصلة (كاش/كرت) للمورد ${s.name}`);
+  if(window.cloudSave) window.cloudSave.supplierInfo(s);
+  save(); showToast(s.splitAccounts ? "✅ تم تفعيل حسابين منفصلين لهذا المورد." : "تم الرجوع للحساب الموحّد.");
 };
 window.loadMoreSuppTxs = async function(sid){
   let s = window.appData.suppliers.find(x=>x.id===sid);
@@ -1828,6 +1865,45 @@ window.loadMoreSuppTxs = async function(sid){
     renderSuppTxs(s);
   }catch(e){ showToast("تعذر تحميل المزيد."); }
 };
+/* ---------- separate running balance for كاش vs كرت — opt-in per supplier ----------
+   Payment methods themselves are untouched everywhere else in the app; this
+   only GROUPS this one supplier's own history into two views: exact "كاش"
+   vs everything else ("كرت", bucketing all card/چكيم variants together). */
+window.switchSuppTab = async function(method, btn){
+  activeSuppFilter = method;
+  document.querySelectorAll('#suppMethodTabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  let s = window.appData.suppliers.find(x=>x.id===document.getElementById('activeSuppId').value);
+  if(!s) return;
+  if(method === 'كاش') document.getElementById('billSuppMethod').value = 'كاش'; // convenience: next entry defaults to this tab
+  else if(method === 'كرت') document.getElementById('billSuppMethod').value = 'كرت تقسيط 10%';
+  if(method === 'all'){
+    document.getElementById('suppFilterBalanceBox').classList.add('hidden');
+    renderSuppTxs(s);
+    return;
+  }
+  await applySuppFilter(s, method);
+};
+async function applySuppFilter(s, method){
+  document.getElementById('supplierTxTable').innerHTML = `<tr class="loading-row"><td colspan="8">جاري تحميل كامل السجل<span class="spin"></span></td></tr>`;
+  try{
+    const fullTxs = window.cloudFetch ? await window.cloudFetch.supplierTxs(s.id) : (s.txs||[]);
+    const matches = method === 'كاش' ? (t => t.method === 'كاش') : (t => t.method !== 'كاش');
+    renderSuppTxsFiltered(s, fullTxs.filter(matches), method);
+  }catch(e){ showToast("تعذر تحميل السجل الكامل."); }
+}
+function renderSuppTxsFiltered(s, txs, method){
+  let bal = 0;
+  let html = txs.map(t=>{
+    let totNet = t.supplierTotalNet||0, paidNet = t.supplierPaidNet||0;
+    bal += totNet - paidNet;
+    return `<tr><td>${esc(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${totNet?money(totNet):'-'}</td><td class="num">${paidNet?money(paidNet):'0'}</td><td><span class="badge ${t.method==='كاش'?'b-cash':'b-card'}">${esc(t.method)}</span></td><td class="num" style="color:var(--warn);">${t.cardLoss?money(t.cardLoss):'0'}</td><td class="num" style="font-weight:800;color:${bal>0?'var(--bad)':'inherit'};">${money(bal)}</td><td style="white-space:nowrap;"><button class="btn btn-print" onclick='printSingleTx(${JSON.stringify(s.name)}, ${JSON.stringify(t.date)}, ${JSON.stringify(t.desc)}, ${totNet}, ${paidNet}, ${JSON.stringify(t.method)}, ${bal})'>🖨️</button> <button class="btn-edit" onclick="editSuppTx('${s.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delSuppTx('${s.id}','${t.id}')">حذف</button></td></tr>`;
+  }).join('');
+  document.getElementById('supplierTxTable').innerHTML = html || `<tr class="empty-row"><td colspan="8">لا توجد حركات ${method==='كاش'?'كاش':'كرت'} بعد</td></tr>`;
+  let balBox = document.getElementById('suppFilterBalanceBox');
+  balBox.classList.remove('hidden');
+  balBox.innerHTML = `الرصيد ${method==='كاش'?'كاش':'كرت'}: <span style="color:${bal>0?'var(--bad)':'var(--ok)'};">${money(Math.abs(bal))}</span> ${bal>0?'(عليك له)':bal<0?'(إلك عنده)':'(متصفّر)'}`;
+}
 window.toggleSuppFormMode = function(){
   let type = document.getElementById('suppTxType').value;
   document.getElementById('groupSuppTotal').style.display = type==='payment' ? 'none':'flex';
