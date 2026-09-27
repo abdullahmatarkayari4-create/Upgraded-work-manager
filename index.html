@@ -447,7 +447,7 @@ tbody tr:hover{background:#fbf7f0;}
           <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <span>سجل حركات المورد</span>
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer;">
-              <input type="checkbox" id="suppSplitToggle" onchange="toggleSuppSplitAccounts()"> فعّل حسابين منفصلين (كاش/كرت) لهذا المورد فقط
+              <input type="checkbox" id="suppSplitToggle" onchange="toggleSuppSplitAccounts()"> فعّل حسابين منفصلين (كاش/كرت) بدون خصم أوتوماتيكي لفرق الكرت — لهذا المورد فقط
             </label>
           </h2>
           <div class="tabs hidden" id="suppMethodTabs" style="margin-bottom:10px;">
@@ -1856,7 +1856,7 @@ window.toggleSuppSplitAccounts = function(){
   }
   addLog("إعداد مورد", `${s.splitAccounts?'تفعيل':'إلغاء'} الحسابات المنفصلة (كاش/كرت) للمورد ${s.name}`);
   if(window.cloudSave) window.cloudSave.supplierInfo(s);
-  save(); showToast(s.splitAccounts ? "✅ تم تفعيل حسابين منفصلين — بيبدآن من صفر من هلق وطالع." : "تم الرجوع للحساب الموحّد.");
+  save(); showToast(s.splitAccounts ? "✅ تفعّل: حسابين منفصلين من الصفر، وبدون أي خصم أوتوماتيكي لفرق الكرت — الأرقام يلي تحطها هي يلي تنحسب بالضبط." : "تم الرجوع للحساب الموحّد بحساباته الأوتوماتيكية المعتادة.");
 };
 window.loadMoreSuppTxs = async function(sid){
   let s = window.appData.suppliers.find(x=>x.id===sid);
@@ -1928,11 +1928,11 @@ window.saveSupplierAction = function(e){
   let grossPaid = parseFloat(document.getElementById('billSuppPaid').value)||0;
   let method = document.getElementById('billSuppMethod').value;
   let desc = document.getElementById('billSuppDesc').value.trim();
-  let payRate = getCardLossRate(method);
+  let payRate = s.splitAccounts ? 0 : getCardLossRate(method);
   let cardLoss = grossPaid * payRate;
   let supplierPaidNet = grossPaid * (1 - payRate);
   let supplierTotalNet = rawTotal;
-  if(type !== 'payment'){
+  if(type !== 'payment' && !s.splitAccounts){
     if(billType === 'كرت_10') supplierTotalNet = rawTotal * 0.90;
     else if(billType === 'چكيم_5') supplierTotalNet = rawTotal * 0.95;
   }
