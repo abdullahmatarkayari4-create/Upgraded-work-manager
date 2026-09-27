@@ -1148,7 +1148,7 @@ window.cloudSave = {
   deleteCustomerTx: async (cid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(cid), "transactions", String(tid))),
   deleteCustomerDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "customers", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "customers", String(id))); },
 
-  supplierInfo: async s => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { id: s.id, name: s.name, phone: s.phone, totalNet: s.totalNet||0, totalPaidNet: s.totalPaidNet||0, totalCardLoss: s.totalCardLoss||0, splitAccounts: s.splitAccounts||false }),
+  supplierInfo: async s => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(s.id)), { id: s.id, name: s.name, phone: s.phone, totalNet: s.totalNet||0, totalPaidNet: s.totalPaidNet||0, totalCardLoss: s.totalCardLoss||0, splitAccounts: s.splitAccounts||false, splitAccountsSince: s.splitAccountsSince||null }),
   supplierTx: async (sid, t) => currentUser && setDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(t.id)), t), // backup import only
   deleteSupplierTx: async (sid, tid) => currentUser && deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(sid), "transactions", String(tid))),
   deleteSupplierDoc: async id => { if(!currentUser) return; const subSnap = await getDocs(collection(dbCloud, "workshops", currentUser.uid, "suppliers", String(id), "transactions")); for(let sd of subSnap.docs) await deleteDoc(sd.ref); await deleteDoc(doc(dbCloud, "workshops", currentUser.uid, "suppliers", String(id))); },
@@ -1845,7 +1845,10 @@ window.toggleSuppSplitAccounts = function(){
   if(!s) return;
   s.splitAccounts = document.getElementById('suppSplitToggle').checked;
   document.getElementById('suppMethodTabs').classList.toggle('hidden', !s.splitAccounts);
-  if(!s.splitAccounts){
+  if(s.splitAccounts){
+    // fresh start: كاش/كرت begin at zero from this exact moment — nothing before it counts
+    s.splitAccountsSince = Date.now();
+  } else {
     activeSuppFilter = 'all';
     document.querySelectorAll('#suppMethodTabs .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.method==='all'));
     document.getElementById('suppFilterBalanceBox').classList.add('hidden');
@@ -1853,7 +1856,7 @@ window.toggleSuppSplitAccounts = function(){
   }
   addLog("إعداد مورد", `${s.splitAccounts?'تفعيل':'إلغاء'} الحسابات المنفصلة (كاش/كرت) للمورد ${s.name}`);
   if(window.cloudSave) window.cloudSave.supplierInfo(s);
-  save(); showToast(s.splitAccounts ? "✅ تم تفعيل حسابين منفصلين لهذا المورد." : "تم الرجوع للحساب الموحّد.");
+  save(); showToast(s.splitAccounts ? "✅ تم تفعيل حسابين منفصلين — بيبدآن من صفر من هلق وطالع." : "تم الرجوع للحساب الموحّد.");
 };
 window.loadMoreSuppTxs = async function(sid){
   let s = window.appData.suppliers.find(x=>x.id===sid);
@@ -1888,7 +1891,10 @@ async function applySuppFilter(s, method){
   document.getElementById('supplierTxTable').innerHTML = `<tr class="loading-row"><td colspan="8">جاري تحميل كامل السجل<span class="spin"></span></td></tr>`;
   try{
     const fullTxs = window.cloudFetch ? await window.cloudFetch.supplierTxs(s.id) : (s.txs||[]);
-    const matches = method === 'كاش' ? (t => t.method === 'كاش') : (t => t.method !== 'كاش');
+    const since = s.splitAccountsSince || 0; // fresh start — nothing before activation counts
+    const matches = method === 'كاش'
+      ? (t => t.method === 'كاش' && (t.createdAt||0) >= since)
+      : (t => t.method !== 'كاش' && (t.createdAt||0) >= since);
     renderSuppTxsFiltered(s, fullTxs.filter(matches), method);
   }catch(e){ showToast("تعذر تحميل السجل الكامل."); }
 }
@@ -1899,10 +1905,10 @@ function renderSuppTxsFiltered(s, txs, method){
     bal += totNet - paidNet;
     return `<tr><td>${esc(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${totNet?money(totNet):'-'}</td><td class="num">${paidNet?money(paidNet):'0'}</td><td><span class="badge ${t.method==='كاش'?'b-cash':'b-card'}">${esc(t.method)}</span></td><td class="num" style="color:var(--warn);">${t.cardLoss?money(t.cardLoss):'0'}</td><td class="num" style="font-weight:800;color:${bal>0?'var(--bad)':'inherit'};">${money(bal)}</td><td style="white-space:nowrap;"><button class="btn btn-print" onclick='printSingleTx(${JSON.stringify(s.name)}, ${JSON.stringify(t.date)}, ${JSON.stringify(t.desc)}, ${totNet}, ${paidNet}, ${JSON.stringify(t.method)}, ${bal})'>🖨️</button> <button class="btn-edit" onclick="editSuppTx('${s.id}','${t.id}')">تعديل</button> <button class="btn btn-danger" onclick="delSuppTx('${s.id}','${t.id}')">حذف</button></td></tr>`;
   }).join('');
-  document.getElementById('supplierTxTable').innerHTML = html || `<tr class="empty-row"><td colspan="8">لا توجد حركات ${method==='كاش'?'كاش':'كرت'} بعد</td></tr>`;
+  document.getElementById('supplierTxTable').innerHTML = html || `<tr class="empty-row"><td colspan="8">لا توجد حركات ${method==='كاش'?'كاش':'كرت'} من تاريخ التفعيل لهلق</td></tr>`;
   let balBox = document.getElementById('suppFilterBalanceBox');
   balBox.classList.remove('hidden');
-  balBox.innerHTML = `الرصيد ${method==='كاش'?'كاش':'كرت'}: <span style="color:${bal>0?'var(--bad)':'var(--ok)'};">${money(Math.abs(bal))}</span> ${bal>0?'(عليك له)':bal<0?'(إلك عنده)':'(متصفّر)'}`;
+  balBox.innerHTML = `الرصيد ${method==='كاش'?'كاش':'كرت'} (من تاريخ تفعيل الحسابين المنفصلين): <span style="color:${bal>0?'var(--bad)':'var(--ok)'};">${money(Math.abs(bal))}</span> ${bal>0?'(عليك له)':bal<0?'(إلك عنده)':'(متصفّر)'}`;
 }
 window.toggleSuppFormMode = function(){
   let type = document.getElementById('suppTxType').value;
